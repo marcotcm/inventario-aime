@@ -1,0 +1,67 @@
+.topbar {
+  height: 79px;
+  background-color: var(--bg-topbar);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 24px;
+  color: white; /* Ahora el texto es oscuro */
+  border-bottom: 1px solid var(--border-color); /* Línea divisoria inferior */
+  z-index: 10;
+  transition: background-color 0.3s ease;
+}
+
+.title {
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
+.rightSection { display: flex; align-items: center; gap: 20px; }
+
+.locationInfo { text-align: right; line-height: 1.2; }
+.locationName { font-size: 14px; font-weight: 700; }
+.locationDept { font-size: 11px; color: var(--text-secondary); }
+
+.divider {
+  width: 1px;
+  height: 32px;
+  background-color: var(--border-color); /* Divisor gris */
+  margin: 0 5px;
+}
+
+.actions { display: flex; align-items: center; gap: 12px; }
+
+.iconButton {
+  background: none;
+  border: none;
+  color: white; /* Iconos oscuros */
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+  border-radius: 50%;
+  position: relative;
+  transition: background-color 0.2s ease;
+}
+
+.iconButton:hover { background-color: var(--hover-bg); }
+
+.badge {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  background-color: var(--pdvsa-red); /* Notificación en rojo institucional */
+  color: white;
+  font-size: 10px;
+  font-weight: bold;
+  height: 16px;
+  min-width: 16px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 4px;
+  border: 2px solid var(--bg-topbar);
+}

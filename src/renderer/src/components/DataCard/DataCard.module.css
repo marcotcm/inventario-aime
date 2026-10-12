@@ -1,0 +1,23 @@
+.card {
+  background: var(--bg-card);
+  border-radius: 12px;
+  padding: 8px;
+  padding-left: 20px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.04);
+  border: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+}
+
+.title {
+  text-align: center;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 20px;
+}
+
+.content {
+  flex: 1;
+  width: 100%;
+}

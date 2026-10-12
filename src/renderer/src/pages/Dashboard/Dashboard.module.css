@@ -1,0 +1,44 @@
+.dashboardTitle {
+  font-size: 18px;
+  font-weight: 800;
+  color: #fefeff;
+  margin-bottom: 20px;
+  text-transform: uppercase;
+}
+
+.kpiGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
+  margin-bottom: 20px;
+}
+
+.twoColGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  margin-bottom: 20px;
+}
+
+.dataTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.dataTable th {
+  background-color: var(--table-header);
+  padding: 10px;
+  text-align: left;
+  color: var(--text-secondary);
+  font-weight: 600;
+  border-bottom: 2px solid var(--border-color);
+}
+
+.dataTable td {
+  padding: 10px;
+  border-bottom: 1px solid var(--table-border);
+  color: var(--text-primary);
+}
+
+.textRed { color: #dc2626; font-weight: 600; }

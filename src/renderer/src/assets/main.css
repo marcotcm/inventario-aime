@@ -1,0 +1,56 @@
+:root {
+  /* Paleta Corporativa PDVSA Petro Boscán (Tema Claro) */
+  --pdvsa-red: #D32F2F;         /* Rojo Institucional */
+  --bg-main: #F4F5F7;           /* Gris Claro / Fondo de la interfaz y filas alternas */
+  --bg-sidebar: #FFFFFF;        /* Blanco */
+  --bg-card: #FFFFFF;           /* Blanco */
+  --bg-topbar: #D32F2F;         /* Topbar se funde con el fondo */
+  --text-primary: #161f28;      /* Gris Oscuro / Texto principal */
+  --text-secondary: #64748B;
+  --border-color: #E2E8F0; 
+  --hover-bg: #E2E8F0;          /* Gris un poco más oscuro para el hover */
+  --active-bg: #F8F9FA;         
+  --active-text: #D32F2F;       
+  --active-border: #D32F2F;     
+  --table-header: #FFFFFF;
+  --table-border: #F1F5F9;
+  --footer-bg: #FFFFFF;
+  --bg-overlay-1: rgba(244, 245, 247, 0.65); 
+  --bg-overlay-2: rgba(255, 255, 255, 0.75);
+}
+
+body.dark-mode {
+  /* Tema Oscuro (Grises Neutros) */
+  --pdvsa-red: #ef4444;
+  --bg-main: #2a2a2a;           /* Fondo negro puro */
+  --bg-sidebar: #18181b; 
+  --bg-card: #27272a;           /* Fila impar oscuro */
+  --bg-topbar: #18181b;         
+  --text-primary: #fafafa;
+  --text-secondary: #a1a1aa; 
+  --border-color: #3f3f46; 
+  --hover-bg: #52525b;          /* Hover en modo oscuro */
+  --active-bg: #27272a;
+  --active-text: #ef4444; 
+  --active-border: #ed2525;
+  --table-header: #18181b;
+  --table-border: #3f3f46;
+  --footer-bg: #18181b;
+  --bg-overlay-1: rgba(5, 5, 5, 0.88); 
+  --bg-overlay-2: rgba(5, 5, 5, 0.92);
+}
+
+body {
+  background-color: var(--bg-main);
+  color: var(--text-primary);
+  transition: background-color 0.3s ease, color 0.3s ease;
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+* { 
+  box-sizing: border-box; 
+  margin: 0; 
+  padding: 0; 
+}

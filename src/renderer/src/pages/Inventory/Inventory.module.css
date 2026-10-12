@@ -1,0 +1,125 @@
+.pageTitle {
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--text-primary);
+  margin-bottom: 20px;
+  text-transform: uppercase;
+}
+
+.container {
+  background: var(--bg-card);
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.02);
+  border: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+  min-height: calc(100vh - 180px);
+}
+
+.toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  gap: 15px;
+  flex-wrap: wrap;
+}
+
+.searchBox {
+  display: flex;
+  align-items: center;
+  background: var(--bg-main);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 0 12px;
+  flex: 1;
+  min-width: 300px;
+  max-width: 450px;
+}
+
+.searchBox input {
+  border: none;
+  background: transparent;
+  padding: 12px;
+  width: 100%;
+  color: var(--text-primary);
+  outline: none;
+  font-size: 14px;
+}
+
+.actions { 
+  display: flex; 
+  gap: 10px; 
+  flex-wrap: wrap; 
+}
+
+/* Botones outline corporativos (Rojo PDVSA) */
+.btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 16px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  background-color: transparent;
+  border: 1px solid var(--pdvsa-red);
+  color: var(--pdvsa-red);
+  transition: all 0.2s;
+}
+
+.btn:hover {
+  background-color: rgba(211, 47, 47, 0.05); /* Fondo rojizo muy sutil */
+}
+
+/* Redundancia para asegurar que todos hereden el mismo estilo si usas clases extra */
+.btnPrimary, .btnDark, .btnOutline {
+  background-color: transparent;
+  border: 1px solid var(--pdvsa-red);
+  color: var(--pdvsa-red);
+}
+
+.pagination {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 24px;
+  font-size: 14px;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.pageControls { 
+  display: flex; 
+  gap: 6px; 
+  align-items: center; 
+}
+
+.pageBtn {
+  padding: 8px 14px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-card);
+  color: var(--text-secondary);
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.2s;
+}
+
+.pageBtn:hover { 
+  background: var(--hover-bg); 
+  color: var(--text-primary); 
+}
+
+.pageBtnActive { 
+  background: transparent; 
+  color: var(--pdvsa-red); 
+  border-color: var(--pdvsa-red); 
+}
+
+.pageDots { 
+  padding: 0 5px; 
+  color: var(--text-secondary); 
+}
