@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { MainLayout } from '../../layouts/MainLayout/MainLayout';
 import { InventoryTable } from '../../components/InventoryTable/InventoryTable';
+import { MaterialModal } from '../../components/Modals/MaterialModal';
 import { EntryModal } from '../../components/Modals/EntryModal';
 import { ExitModal } from '../../components/Modals/ExitModal';
 import { FilterModal } from '../../components/Modals/FilterModal';
@@ -8,31 +9,44 @@ import styles from './Inventory.module.css';
 import { MdSearch, MdAdd, MdArrowUpward, MdArrowDownward, MdPictureAsPdf, MdFilterList } from 'react-icons/md';
 
 export const Inventory = () => {
+  const [isMaterialOpen, setIsMaterialOpen] = useState(false);
   const [isEntryOpen, setIsEntryOpen] = useState(false);
   const [isExitOpen, setIsExitOpen] = useState(false);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
-  
-  // 1. Estado para almacenar el texto de búsqueda
+  const [tableData, setTableData] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
 
-  // Datos base del inventario
-  const tableData = [
-    { code: 'PM-0001', desc: 'Tubería de Acero 6"x6m', cat: 'Tubería', loc: 'Almacén A', unit: 'UND', stock: 450, min: 100, status: 'Stock OK' },
-    { code: 'PM-0005', desc: 'Válvula de Compuerta 4" ANSI 150', cat: 'Válvulas', loc: 'Almacén B', unit: 'UND', stock: 120, min: 30, status: 'Crítico' },
-    { code: 'PM-0012', desc: 'Empacadura Espiralada 4" RF', cat: 'Conexiones', loc: 'Almacén A', unit: 'UND', stock: 850, min: 150, status: 'Stock OK' },
-    { code: 'PM-0021', desc: 'Casco de Seguridad (Rojo) PDVSA', cat: 'EPP', loc: 'Almacén C', unit: 'UND', stock: 310, min: 50, status: 'Stock OK' },
-    { code: 'PM-0033', desc: 'Lubricante Multigrado SAE 15W-40', cat: 'Fluidos', loc: 'Almacén B', unit: 'LTR', stock: 75, min: 200, status: 'Crítico' },
-    { code: 'PM-0041', desc: 'Electrodos de Soldadura E7018 1/8"', cat: 'Soldadura', loc: 'Almacén A', unit: 'KG', stock: 180, min: 50, status: 'Stock OK' },
-    { code: 'PM-0045', desc: 'Brida Ciega 4" ANSI 150', cat: 'Conexiones', loc: 'Almacén A', unit: 'UND', stock: 50, min: 20, status: 'Stock OK' },
-    { code: 'PM-0052', desc: 'Grasa Litio Multipropósito', cat: 'Fluidos', loc: 'Almacén B', unit: 'KG', stock: 15, min: 40, status: 'Crítico' },
-  ];
+  const loadInventory = useCallback(() => {
+    return window.api.inventory
+      .list()
+      .then(setTableData)
+      .catch((error) => setLoadError(error.message))
+      .finally(() => setIsLoading(false))
+  }, [])
 
-  // 2. Lógica de filtrado reactiva
+  useEffect(() => {
+    loadInventory()
+  }, [loadInventory])
+
+  const saveMaterial = async (material) => {
+    setIsLoading(true)
+    setLoadError('')
+    try {
+      await window.api.inventory.create(material)
+      await loadInventory()
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
   const filteredData = tableData.filter((item) => {
     const term = searchTerm.toLowerCase();
     return (
       item.code.toLowerCase().includes(term) ||
-      item.desc.toLowerCase().includes(term)
+      item.desc.toLowerCase().includes(term) ||
+      item.cat.toLowerCase().includes(term)
     );
   });
 
@@ -44,7 +58,6 @@ export const Inventory = () => {
         <div className={styles.toolbar}>
           <div className={styles.searchBox}>
             <MdSearch size={22} color="var(--text-secondary)" />
-            {/* 3. Conectamos el input al estado */}
             <input 
               type="text" 
               placeholder="Buscar material por Código, Nombre..." 
@@ -54,7 +67,7 @@ export const Inventory = () => {
           </div>
 
           <div className={styles.actions}>
-            <button className={`${styles.btn} ${styles.btnPrimary}`} onClick={() => setIsEntryOpen(true)}>
+            <button className={`${styles.btn} ${styles.btnPrimary}`} onClick={() => setIsMaterialOpen(true)}>
               Nuevo Material <MdAdd size={18} />
             </button>
             <button className={`${styles.btn} ${styles.btnDark}`} onClick={() => setIsEntryOpen(true)}>
@@ -72,23 +85,28 @@ export const Inventory = () => {
           </div>
         </div>
 
-        {/* 4. Le pasamos a la tabla los datos filtrados en lugar de los totales */}
-        <InventoryTable data={filteredData} />
+        {loadError ? (
+          <p role="alert">No se pudo cargar el inventario: {loadError}</p>
+        ) : isLoading ? (
+          <p role="status">Cargando inventario...</p>
+        ) : filteredData.length ? (
+          <InventoryTable data={filteredData} />
+        ) : (
+          <p role="status">
+            {tableData.length ? 'No hay materiales que coincidan con la búsqueda.' : 'Todavía no hay materiales registrados.'}
+          </p>
+        )}
 
         <div className={styles.pagination}>
-          {/* Mostramos dinámicamente cuántos resultados coinciden */}
           <div>Mostrando {filteredData.length} de {tableData.length} Materiales</div>
-          <div className={styles.pageControls}>
-            <button className={styles.pageBtn}>Anterior</button>
-            <button className={`${styles.pageBtn} ${styles.pageBtnActive}`}>1</button>
-            <button className={styles.pageBtn}>2</button>
-            <span className={styles.pageDots}>...</span>
-            <button className={styles.pageBtn}>63</button>
-            <button className={styles.pageBtn}>Siguiente</button>
-          </div>
         </div>
       </div>
 
+      <MaterialModal
+        isOpen={isMaterialOpen}
+        onClose={() => setIsMaterialOpen(false)}
+        onSave={saveMaterial}
+      />
       <EntryModal isOpen={isEntryOpen} onClose={() => setIsEntryOpen(false)} />
       <ExitModal isOpen={isExitOpen} onClose={() => setIsExitOpen(false)} />
       <FilterModal isOpen={isFilterOpen} onClose={() => setIsFilterOpen(false)} />

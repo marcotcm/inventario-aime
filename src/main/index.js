@@ -2,6 +2,7 @@ import { app, shell, BrowserWindow, ipcMain } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
+import { closeDatabase, createMaterial, initializeDatabase, listInventory } from './database'
 
 function createWindow() {
   // Create the browser window.
@@ -39,6 +40,10 @@ function createWindow() {
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
 app.whenReady().then(() => {
+  initializeDatabase(app)
+  ipcMain.handle('inventory:list', () => listInventory())
+  ipcMain.handle('inventory:create', (_event, material) => createMaterial(material))
+
   // Set app user model id for windows
   electronApp.setAppUserModelId('com.electron')
 
@@ -59,6 +64,9 @@ app.whenReady().then(() => {
     // dock icon is clicked and there are no other windows open.
     if (BrowserWindow.getAllWindows().length === 0) createWindow()
   })
+}).catch((error) => {
+  console.error('No se pudo iniciar la aplicación:', error)
+  app.quit()
 })
 
 // Quit when all windows are closed, except on macOS. There, it's common
@@ -69,6 +77,8 @@ app.on('window-all-closed', () => {
     app.quit()
   }
 })
+
+app.on('before-quit', closeDatabase)
 
 // In this file you can include the rest of your app's specific main process
 // code. You can also put them in separate files and require them here.

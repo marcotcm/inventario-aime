@@ -3,6 +3,7 @@ productName: app-inventario
 directories:
   buildResources: build
 files:
+  - data/inventarioAime.db
   - '!**/.vscode/*'
   - '!src/*'
   - '!electron.vite.config.{js,ts,mjs,cjs}'

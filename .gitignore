@@ -1,6 +1,8 @@
 node_modules
 dist
 out
+data/*.db-wal
+data/*.db-shm
 .DS_Store
 .eslintcache
 *.log*
