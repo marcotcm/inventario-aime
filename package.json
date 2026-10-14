@@ -1,10 +1,10 @@
 {
-  "name": "app-inventario",
+  "name": "ait-inventario-petroboscan",
   "version": "1.0.0",
-  "description": "An Electron application with React",
+  "description": "Sistema de Gestión de Inventario - Gerencia AIT PDVSA Petro Boscán S.A.",
   "main": "./out/main/index.js",
-  "author": "example.com",
-  "homepage": "https://electron-vite.org",
+  "author": "Marco Tulio Concho Morales - Departamento AIT Petro Boscán",
+  "homepage": "https://www.pdvsa.com",
   "scripts": {
     "format": "prettier --write .",
     "lint": "eslint --cache .",
@@ -14,6 +14,7 @@
     "postinstall": "electron-builder install-app-deps",
     "build:unpack": "npm run build && electron-builder --dir",
     "build:win": "npm run build && electron-builder --win",
+    "build:portable": "npm run build && electron-builder --win portable",
     "build:mac": "npm run build && electron-builder --mac",
     "build:linux": "npm run build && electron-builder --linux"
   },
@@ -21,6 +22,7 @@
     "@electron-toolkit/preload": "^3.0.2",
     "@electron-toolkit/utils": "^4.0.0",
     "electron-updater": "^6.3.9",
+    "exceljs": "^4.4.0",
     "react-icons": "^5.7.0",
     "react-router-dom": "^7.18.4",
     "recharts": "^3.10.1"
@@ -40,5 +42,54 @@
     "react": "^19.2.1",
     "react-dom": "^19.2.1",
     "vite": "^7.2.6"
+  },
+  "build": {
+    "appId": "com.petroboscan.ait.inventario",
+    "productName": "Inventario AIT Petro Boscán",
+    "copyright": "Copyright © 2026 Gerencia AIT - PDVSA Petro Boscán S.A.",
+    "directories": {
+      "buildResources": "build",
+      "output": "dist"
+    },
+    "files": [
+      "!**/.vscode/*",
+      "!src/*",
+      "!electron.vite.config.{js,ts,mjs,cjs}",
+      "!{.eslintignore,.eslintrc.cjs,.prettierignore,.prettierrc.yaml,dev-app-update.yml,CHANGELOG.md,README.md}",
+      "!{.env,.env.*,.npmrc,pnpm-lock.yaml}"
+    ],
+    "asarUnpack": [
+      "resources/**"
+    ],
+    "win": {
+      "executableName": "Inventario-AIT-PetroBoscan",
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "nsis": {
+      "artifactName": "${name}-Setup-${version}.${ext}",
+      "shortcutName": "Inventario AIT Petro Boscán",
+      "uninstallDisplayName": "Inventario AIT Petro Boscán",
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": "always",
+      "createStartMenuShortcut": true
+    },
+    "portable": {
+      "artifactName": "${name}-Portable-${version}.${ext}"
+    },
+    "npmRebuild": false
   }
 }

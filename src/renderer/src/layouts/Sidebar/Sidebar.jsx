@@ -1,8 +1,7 @@
 import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import styles from './Sidebar.module.css';
-import { MdHome, MdInventory, MdInput, MdOutput, MdPeople, MdAssessment, MdSettings, MdExpandMore } from 'react-icons/md';
-import { FaUserCircle } from 'react-icons/fa';
+import { MdHome, MdInventory, MdInput, MdOutput, MdPeople, MdAssessment, MdSettings } from 'react-icons/md';
 
 export const Sidebar = () => {
   const location = useLocation();
@@ -13,7 +12,7 @@ export const Sidebar = () => {
   return (
     <aside className={styles.sidebar}>
       <div className={styles.topLogoArea}>
-        <span style={{color: '#cb4335', fontWeight: '900', fontSize: '20px'}}>PDVSA</span>
+        <span style={{color: 'var(--pdvsa-red)', fontWeight: '900', fontSize: '20px'}}>PDVSA</span>
       </div>
 
       <nav className={styles.nav}>
@@ -49,22 +48,33 @@ export const Sidebar = () => {
           <div>SALIDAS <span className={styles.subtitle}>Egresos</span></div>
         </button>
         
-        <button className={styles.navItem}><MdPeople className={styles.navIcon} /> PROVEEDORES</button>
-        <button className={styles.navItem}><MdAssessment className={styles.navIcon} /> REPORTES</button>
-        <button className={styles.navItem}><MdSettings className={styles.navIcon} /> AJUSTES</button>
+        <button 
+          onClick={() => navigate('/proveedores')}
+          className={`${styles.navItem} ${isActive('/proveedores') ? styles.navItemActive : ''}`}
+        >
+          <MdPeople className={styles.navIcon} /> 
+          <div>PROVEEDORES <span className={styles.subtitle}>Directorio</span></div>
+        </button>
+
+        <button 
+          onClick={() => navigate('/reportes')}
+          className={`${styles.navItem} ${isActive('/reportes') ? styles.navItemActive : ''}`}
+        >
+          <MdAssessment className={styles.navIcon} /> 
+          <div>REPORTES <span className={styles.subtitle}>Estadísticas</span></div>
+        </button>
+
+        <button 
+          onClick={() => navigate('/ajustes')}
+          className={`${styles.navItem} ${isActive('/ajustes') ? styles.navItemActive : ''}`}
+        >
+          <MdSettings className={styles.navIcon} /> 
+          <div>AJUSTES <span className={styles.subtitle}>Sistema</span></div>
+        </button>
       </nav>
 
       <div className={styles.bottomLogoArea}>
-        <span style={{color: '#cb4335', fontWeight: '900', fontSize: '24px'}}>❖ PDVSA</span>
-      </div>
-
-      <div className={styles.userProfile}>
-        <FaUserCircle size={36} color="#94a3b8" />
-        <div className={styles.userInfo}>
-          <div className={styles.userName}>J. Pérez</div>
-          <div className={styles.userRole}>Administrador</div>
-        </div>
-        <MdExpandMore size={20} color="#64748b" style={{ marginLeft: 'auto' }} />
+        <span style={{color: 'var(--pdvsa-red)', fontWeight: '900', fontSize: '24px'}}>❖ PDVSA</span>
       </div>
     </aside>
   );

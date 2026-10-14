@@ -1,0 +1,157 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.pageTitle {
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--text-primary);
+  margin-bottom: 20px;
+  text-transform: uppercase;
+}
+
+.providersScroll {
+  display: flex;
+  gap: 15px;
+  overflow-x: auto;
+  padding-bottom: 10px;
+  margin-bottom: 20px;
+}
+
+.providersScroll::-webkit-scrollbar { height: 6px; }
+.providersScroll::-webkit-scrollbar-thumb { background-color: var(--border-color); border-radius: 4px; }
+
+.providerCard {
+  min-width: 300px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 16px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+}
+
+.provName {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 8px;
+}
+
+.provInfo {
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.sectionTitle {
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--text-primary);
+}
+
+.subTitle {
+  font-weight: 400;
+  color: var(--text-secondary);
+}
+
+.actions {
+  display: flex;
+  gap: 10px;
+}
+
+.searchBox {
+  display: flex;
+  align-items: center;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 0 10px;
+  min-width: 250px;
+}
+
+.searchBox input {
+  border: none;
+  background: transparent;
+  padding: 8px;
+  width: 100%;
+  color: var(--text-primary);
+  outline: none;
+  font-size: 13px;
+}
+
+.btnOutline {
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.catalogGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 15px;
+  overflow-y: auto;
+}
+
+.catalogCard {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  display: flex;
+  padding: 12px;
+  gap: 15px;
+  align-items: center;
+}
+
+.imagePlaceholder {
+  width: 80px;
+  height: 80px;
+  background: var(--bg-main);
+  border: 1px dashed var(--border-color);
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.itemDetails {
+  flex: 1;
+}
+
+.itemName {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.itemCode {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--pdvsa-red);
+  margin-bottom: 6px;
+}
+
+.itemMeta {
+  font-size: 11px;
+  color: var(--text-secondary);
+  line-height: 1.4;
+}

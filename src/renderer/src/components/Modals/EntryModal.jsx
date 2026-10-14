@@ -1,14 +1,40 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import styles from './Modals.module.css';
-import { MdClose } from 'react-icons/md';
+import { MdClose, MdQrCode2, MdErrorOutline } from 'react-icons/md';
 
-export const EntryModal = ({ isOpen, onClose }) => {
+export const EntryModal = ({ isOpen, onClose, materiales = [], onSave, onViewSerials }) => {
   const [render, setRender] = useState(isOpen);
-  const [items, setItems] = useState([{ material: '', qty: 1, unit: 'UND', serials: [''] }]);
+  const [fecha, setFecha] = useState('');
+  const [proveedor, setProveedor] = useState('');
+  const [factura, setFactura] = useState('');
+  const [notas, setNotas] = useState('');
+  const [items, setItems] = useState([{ code: '', qty: 1, serials: [''] }]);
+  const [error, setError] = useState('');
+  const wasOpen = useRef(false);
 
+  // Reiniciar el formulario solo cuando se abre el modal
   useEffect(() => {
-    if (isOpen) setRender(true);
-  }, [isOpen]);
+    if (isOpen && !wasOpen.current) {
+      setRender(true);
+      setError('');
+      setFecha(new Date().toISOString().split('T')[0]);
+      setProveedor('');
+      setFactura('');
+      setNotas('');
+      const defaultCode = materiales.length > 0 ? materiales[0].code : '';
+      setItems([{ code: defaultCode, qty: 1, serials: [''] }]);
+    }
+    wasOpen.current = isOpen;
+  }, [isOpen, materiales]);
+
+  // Hacer que el error flotante desaparezca automáticamente a los 4 segundos
+  useEffect(() => {
+    if (!error) return;
+    const timer = setTimeout(() => {
+      setError('');
+    }, 4000);
+    return () => clearTimeout(timer);
+  }, [error]);
 
   const handleAnimationEnd = () => {
     if (!isOpen) setRender(false);
@@ -16,8 +42,16 @@ export const EntryModal = ({ isOpen, onClose }) => {
 
   if (!render) return null;
 
+  const handleCodeChange = (index, newCode) => {
+    setError('');
+    const newItems = [...items];
+    newItems[index].code = newCode;
+    setItems(newItems);
+  };
+
   const handleQtyChange = (index, newQty) => {
-    const qty = parseInt(newQty) || 0;
+    setError('');
+    const qty = Math.max(1, parseInt(newQty) || 1);
     const newItems = [...items];
     newItems[index].qty = qty;
     
@@ -31,12 +65,74 @@ export const EntryModal = ({ isOpen, onClose }) => {
   };
 
   const handleSerialChange = (itemIndex, serialIndex, value) => {
+    setError('');
     const newItems = [...items];
     newItems[itemIndex].serials[serialIndex] = value;
     setItems(newItems);
   };
 
-  const addItem = () => setItems([...items, { material: '', qty: 1, unit: 'UND', serials: [''] }]);
+  const addItem = () => {
+    setError('');
+    const defaultCode = materiales.length > 0 ? materiales[0].code : '';
+    setItems([...items, { code: defaultCode, qty: 1, serials: [''] }]);
+  };
+
+  const removeItem = (indexToRemove) => {
+    if (items.length <= 1) return;
+    setError('');
+    setItems(items.filter((_, idx) => idx !== indexToRemove));
+  };
+
+  const validarFormulario = () => {
+    if (!fecha) return 'Debe seleccionar la fecha de ingreso.';
+    if (!proveedor.trim()) return 'Debe ingresar el nombre del proveedor.';
+    if (!factura.trim()) return 'Debe ingresar el Nro. de Referencia o Factura.';
+
+    const todosLosSeriales = [];
+
+    for (let i = 0; i < items.length; i++) {
+      const it = items[i];
+      const num = i + 1;
+
+      if (!it.code || !it.code.trim()) {
+        return `Material #${num}: Seleccione un material o elimine el bloque con Quitar.`;
+      }
+
+      if (!it.qty || it.qty <= 0) {
+        return `Material #${num} (${it.code}): La cantidad debe ser mayor a 0.`;
+      }
+
+      for (let s = 0; s < it.serials.length; s++) {
+        const valorSerial = (it.serials[s] || '').trim();
+        if (!valorSerial) {
+          return `Material #${num} (${it.code}): El Serial #${s + 1} está en blanco. Complételo o quite el material.`;
+        }
+        const upper = valorSerial.toUpperCase();
+        if (todosLosSeriales.includes(upper)) {
+          return `El serial "${valorSerial}" está repetido en el formulario.`;
+        }
+        todosLosSeriales.push(upper);
+      }
+    }
+
+    return null;
+  };
+
+  const handleSubmit = async () => {
+    const mensajeError = validarFormulario();
+    if (mensajeError) {
+      setError(mensajeError);
+      return;
+    }
+
+    try {
+      setError('');
+      await onSave({ fecha, proveedor, factura, items, notas });
+      onClose();
+    } catch (err) {
+      setError(err.message);
+    }
+  };
 
   return (
     <div 
@@ -46,7 +142,7 @@ export const EntryModal = ({ isOpen, onClose }) => {
     >
       <div 
         className={`${styles.sidePanel} ${!isOpen ? styles.sidePanelExit : ''}`} 
-        onClick={(e) => e.stopPropagation()} /* Evita cerrar al hacer clic dentro del panel */
+        onClick={(e) => e.stopPropagation()}
       >
         <div className={styles.header}>
           <div className={styles.title}>Registrar Nueva Entrada</div>
@@ -56,60 +152,117 @@ export const EntryModal = ({ isOpen, onClose }) => {
         <div className={styles.body}>
           <div className={styles.formGroup}>
             <label>Fecha de Ingreso</label>
-            <input type="date" className={styles.input} />
+            <input 
+              type="date" 
+              className={styles.input} 
+              value={fecha}
+              onChange={(e) => setFecha(e.target.value)}
+            />
           </div>
           
           <div className={styles.formGroup}>
             <label>Proveedor</label>
-            <input type="text" className={styles.input} placeholder="Ej. Aceros Monagas" />
+            <input 
+              type="text" 
+              className={styles.input} 
+              placeholder="Ej. Aceros Monagas" 
+              value={proveedor}
+              onChange={(e) => setProveedor(e.target.value)}
+            />
           </div>
 
           <div className={styles.formGroup}>
-            <label>Nro. Referencia/Factura</label>
-            <input type="text" className={styles.input} placeholder="000-123456" />
+            <label>Nro. Referencia/Factura (Manual)</label>
+            <input 
+              type="text" 
+              className={styles.input} 
+              placeholder="Ej. F-00928" 
+              value={factura}
+              onChange={(e) => setFactura(e.target.value)}
+            />
           </div>
 
           <div className={styles.formGroup}>
-            <label>Lista de Materiales</label>
-            {items.map((item, index) => (
-              <div key={index} className={styles.dynamicItem}>
-                <div style={{ display: 'flex', gap: '10px', marginBottom: '10px' }}>
-                  <div style={{ flex: 2 }}>
-                    <input type="text" className={styles.input} placeholder="Buscar Material..." />
+            <label>Lista de Materiales a Ingresar</label>
+            {items.map((item, index) => {
+              const selectedMat = materiales.find((m) => m.code === item.code);
+
+              return (
+                <div key={index} className={styles.dynamicItem}>
+                  <div className={styles.itemHeader}>
+                    <span className={styles.itemBadgeTitle}>Material #{index + 1}</span>
+                    {items.length > 1 && (
+                      <button
+                        type="button"
+                        className={styles.removeItemBtn}
+                        onClick={() => removeItem(index)}
+                        title="Quitar este material"
+                      >
+                        <MdClose size={14} /> Quitar
+                      </button>
+                    )}
                   </div>
-                  <div style={{ flex: 1 }}>
-                    <input 
-                      type="number" 
-                      className={styles.input} 
-                      value={item.qty} 
-                      min="1"
-                      onChange={(e) => handleQtyChange(index, e.target.value)} 
-                      title="Cantidad"
-                    />
+
+                  <div style={{ display: 'flex', gap: '10px', marginBottom: '8px' }}>
+                    <div style={{ flex: 2 }}>
+                      <select 
+                        className={styles.select}
+                        value={item.code}
+                        onChange={(e) => handleCodeChange(index, e.target.value)}
+                      >
+                        <option value="">-- Seleccione Material --</option>
+                        {materiales.map((m) => (
+                          <option key={m.code} value={m.code}>
+                            {m.code} - {m.desc} (Stock: {m.stock})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <input 
+                        type="number" 
+                        className={styles.input} 
+                        value={item.qty} 
+                        min="1"
+                        onChange={(e) => handleQtyChange(index, e.target.value)} 
+                        title="Cantidad"
+                      />
+                    </div>
                   </div>
-                </div>
-                
-                {item.qty > 0 && (
-                  <div className={styles.formGroup}>
-                    <label style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
-                      Seriales / Identificadores Únicos ({item.qty})
-                    </label>
+
+                  {selectedMat && (
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                      <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
+                        Nuevos Seriales a Ingresar ({item.qty}):
+                      </span>
+                      <button 
+                        type="button" 
+                        className={styles.viewSerialsBtn}
+                        onClick={() => onViewSerials && onViewSerials(selectedMat)}
+                      >
+                        <MdQrCode2 size={14} />
+                        Ver seriales ({selectedMat.serials?.length || 0})
+                      </button>
+                    </div>
+                  )}
+                  
+                  {item.qty > 0 && (
                     <div className={styles.serialGrid}>
                       {item.serials.map((serial, sIndex) => (
                         <input 
                           key={sIndex}
                           type="text" 
                           className={styles.input} 
-                          placeholder={`Serial #${sIndex + 1}`}
+                          placeholder={`Nuevo Serial #${sIndex + 1}`}
                           value={serial}
                           onChange={(e) => handleSerialChange(index, sIndex, e.target.value)}
                         />
                       ))}
                     </div>
-                  </div>
-                )}
-              </div>
-            ))}
+                  )}
+                </div>
+              );
+            })}
             <button 
               type="button" 
               onClick={addItem} 
@@ -121,13 +274,30 @@ export const EntryModal = ({ isOpen, onClose }) => {
 
           <div className={styles.formGroup}>
             <label>Notas</label>
-            <textarea className={styles.textarea} rows="3" placeholder="Observaciones de la entrada..."></textarea>
+            <textarea 
+              className={styles.textarea} 
+              rows="3" 
+              placeholder="Observaciones de la entrada..."
+              value={notas}
+              onChange={(e) => setNotas(e.target.value)}
+            ></textarea>
           </div>
         </div>
 
+        {/* Notificación flotante superpuesta (siempre visible sin importar el scroll) */}
+        {error && (
+          <div className={styles.floatingToast}>
+            <MdErrorOutline size={20} style={{ flexShrink: 0 }} />
+            <span>{error}</span>
+            <button type="button" className={styles.toastCloseBtn} onClick={() => setError('')}>
+              <MdClose size={18} />
+            </button>
+          </div>
+        )}
+
         <div className={styles.footer}>
           <button className={styles.btnSecondary} onClick={onClose}>Cancelar</button>
-          <button className={styles.btnPrimary} onClick={onClose}>Guardar Entrada</button>
+          <button className={styles.btnPrimary} onClick={handleSubmit}>Guardar Entrada</button>
         </div>
       </div>
     </div>

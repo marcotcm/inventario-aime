@@ -12,7 +12,7 @@ export const Topbar = () => {
       
       <div className={styles.rightSection}>
         <div className={styles.locationInfo}>
-          <div className={styles.locationName}>PETROBOZCAN</div>
+          <div className={styles.locationName}>PETROBOSCAN</div>
           <div className={styles.locationDept}>Mantenimiento y Suministros</div>
         </div>
 

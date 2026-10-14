@@ -37,23 +37,22 @@
 }
 
 .table td {
-  padding: 16px;
+  padding: 14px 16px;
   color: var(--text-primary);
-  border-bottom: 1px solid var(--border-color); /* Borde sutil entre todas las filas */
+  border-bottom: 1px solid var(--border-color);
 }
 
-/* Efecto de filas alternas (Cebreado / Zebra Striping) */
+/* Filas alternas (Cebreado) */
 .table tbody tr:nth-child(odd) {
-  background-color: var(--bg-card); /* Blanco (Fila clara) */
+  background-color: var(--bg-card);
 }
 
 .table tbody tr:nth-child(even) {
-  background-color: var(--bg-main); /* Gris claro de la interfaz (Fila oscura) */
+  background-color: var(--bg-main);
 }
 
-/* Hover resalta por encima de las filas alternas */
 .table tbody tr:hover {
-  background-color: var(--hover-bg); 
+  background-color: var(--hover-bg);
 }
 
 .badge {
@@ -66,22 +65,80 @@
   min-width: 90px;
 }
 
-.badgeOk { 
-  background-color: #E8F8F0; 
-  color: #27AE60; 
+.badgeOk {
+  background-color: #E8F8F0;
+  color: #27AE60;
 }
 
-.badgeCritical { 
-  background-color: #FADBD8; 
-  color: #D32F2F; 
+.badgeCritical {
+  background-color: #FADBD8;
+  color: #D32F2F;
 }
 
-:global(body.dark-mode) .badgeOk { 
-  background-color: rgba(39, 174, 96, 0.2); 
-  color: #4ade80; 
+:global(body.dark-mode) .badgeOk {
+  background-color: rgba(39, 174, 96, 0.2);
+  color: #4ade80;
 }
 
-:global(body.dark-mode) .badgeCritical { 
-  background-color: rgba(211, 47, 47, 0.2); 
-  color: #f87171; 
+:global(body.dark-mode) .badgeCritical {
+  background-color: rgba(211, 47, 47, 0.2);
+  color: #f87171;
+}
+
+/* Celda y Menú de 3 puntos */
+.actionCell {
+  position: relative;
+  text-align: center;
+}
+
+.dotsBtn {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s, color 0.2s;
+}
+
+.dotsBtn:hover {
+  background-color: var(--border-color);
+  color: var(--text-primary);
+}
+
+.dropdownMenu {
+  position: absolute;
+  right: 36px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  border-radius: 8px;
+  z-index: 50;
+  min-width: 165px;
+  padding: 4px;
+}
+
+.dropdownItem {
+  width: 100%;
+  padding: 8px 12px;
+  border: none;
+  background: transparent;
+  color: var(--text-primary);
+  font-size: 13px;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-radius: 6px;
+}
+
+.dropdownItem:hover {
+  background-color: var(--hover-bg);
 }

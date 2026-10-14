@@ -15,8 +15,8 @@
   --table-header: #FFFFFF;
   --table-border: #F1F5F9;
   --footer-bg: #FFFFFF;
-  --bg-overlay-1: rgba(244, 245, 247, 0.65); 
-  --bg-overlay-2: rgba(255, 255, 255, 0.75);
+  --bg-overlay-1: rgba(15, 15, 16, 0.41); 
+  --bg-overlay-2: rgba(16, 15, 15, 0.75);
 }
 
 body.dark-mode {

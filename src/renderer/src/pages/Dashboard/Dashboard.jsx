@@ -20,7 +20,7 @@ export const Dashboard = () => {
 
   return (
     <MainLayout>
-      <h2 className={styles.dashboardTitle}>Dashboard - PETROBOZCAN</h2>
+      <h2 className={styles.dashboardTitle}>Dashboard - PETROBOSCAN</h2>
 
       <div className={styles.kpiGrid}>
         <KpiCard title="Total Materiales Únicos" value="1,250" icon={<MdLandscape size={24} color="#8b5cf6" />} />

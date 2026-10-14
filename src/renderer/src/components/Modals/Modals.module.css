@@ -21,12 +21,13 @@
 }
 
 .sidePanel {
-  width: 450px;
+  width: 480px;
   height: 100%;
   background: var(--bg-card);
   box-shadow: -4px 0 15px rgba(0, 0, 0, 0.2);
   display: flex;
   flex-direction: column;
+  position: relative; /* Necesario para anclar el Toast flotante sin depender del scroll */
   animation: slideInRight 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
@@ -35,12 +36,13 @@
 }
 
 .centerModal {
-  width: 400px;
+  width: 440px;
   background: var(--bg-card);
   border-radius: 12px;
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
   display: flex;
   flex-direction: column;
+  position: relative; /* Necesario para anclar el Toast flotante */
   animation: popIn 0.3s ease-out forwards;
 }
 
@@ -56,7 +58,11 @@
   align-items: center;
 }
 
-.title { font-size: 18px; font-weight: 700; color: var(--text-primary); }
+.title {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
 
 .closeBtn {
   background: transparent;
@@ -70,7 +76,9 @@
   border-radius: 4px;
 }
 
-.closeBtn:hover { background: var(--hover-bg); }
+.closeBtn:hover {
+  background: var(--hover-bg);
+}
 
 .body {
   padding: 20px;
@@ -81,8 +89,17 @@
   gap: 16px;
 }
 
-.formGroup { display: flex; flex-direction: column; gap: 6px; }
-.formGroup label { font-size: 13px; font-weight: 600; color: var(--text-primary); }
+.formGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.formGroup label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
 
 .input, .select, .textarea {
   width: 100%;
@@ -104,15 +121,129 @@
   background: var(--bg-main);
   border: 1px solid var(--border-color);
   padding: 12px;
-  border-radius: 6px;
+  border-radius: 8px;
   margin-bottom: 10px;
+  position: relative;
+}
+
+.itemHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.itemBadgeTitle {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+}
+
+.removeItemBtn {
+  background: rgba(211, 47, 47, 0.1);
+  color: var(--pdvsa-red);
+  border: 1px solid rgba(211, 47, 47, 0.3);
+  border-radius: 4px;
+  padding: 3px 8px;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.2s;
+}
+
+.removeItemBtn:hover {
+  background: var(--pdvsa-red);
+  color: white;
 }
 
 .serialGrid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 10px;
-  margin-top: 10px;
+  margin-top: 8px;
+}
+
+.viewSerialsBtn {
+  background: transparent;
+  border: 1px solid var(--pdvsa-red);
+  color: var(--pdvsa-red);
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.2s;
+}
+
+.viewSerialsBtn:hover {
+  background: rgba(211, 47, 47, 0.08);
+}
+
+.serialsListWrapper {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  max-height: 280px;
+  overflow-y: auto;
+  padding: 4px;
+}
+
+.serialBadgeItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  background: var(--bg-main);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+/* Notificación Flotante Superpuesta (Toast) */
+.floatingToast {
+  position: absolute;
+  bottom: 82px; /* Flota justo encima de los botones Guardar/Cancelar */
+  left: 20px;
+  right: 20px;
+  background-color: #D32F2F;
+  color: #FFFFFF;
+  padding: 12px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  animation: toastSlideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.toastCloseBtn {
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.85);
+  cursor: pointer;
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px;
+  border-radius: 4px;
+}
+
+.toastCloseBtn:hover {
+  color: #FFFFFF;
+  background: rgba(255, 255, 255, 0.15);
 }
 
 .footer {
@@ -124,7 +255,7 @@
 }
 
 .btnPrimary {
-  background: #dc2626; 
+  background: var(--pdvsa-red);
   color: white;
   border: none;
   padding: 10px 20px;
@@ -133,7 +264,9 @@
   cursor: pointer;
 }
 
-.btnPrimary:hover { background: #b91c1c; }
+.btnPrimary:hover {
+  opacity: 0.9;
+}
 
 .btnSecondary {
   background: var(--hover-bg);
@@ -145,12 +278,21 @@
   cursor: pointer;
 }
 
-/* Keyframes de Entrada */
+@keyframes toastSlideUp {
+  from {
+    transform: translateY(15px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
 @keyframes slideInRight { from { transform: translateX(100%); } to { transform: translateX(0); } }
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 @keyframes popIn { from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
 
-/* Keyframes de Salida */
 @keyframes slideOutRight { from { transform: translateX(0); } to { transform: translateX(100%); } }
 @keyframes fadeOut { from { opacity: 1; } to { opacity: 0; } }
 @keyframes popOut { from { transform: scale(1); opacity: 1; } to { transform: scale(0.95); opacity: 0; } }

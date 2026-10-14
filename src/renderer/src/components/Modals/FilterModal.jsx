@@ -2,18 +2,42 @@ import React, { useState, useEffect } from 'react';
 import styles from './Modals.module.css';
 import { MdClose } from 'react-icons/md';
 
-export const FilterModal = ({ isOpen, onClose }) => {
+export const FilterModal = ({ isOpen, onClose, currentFilters, onApply }) => {
   const [render, setRender] = useState(isOpen);
+  const [cat, setCat] = useState('Todas');
+  const [loc, setLoc] = useState('Todos los Almacenes');
+  const [status, setStatus] = useState('Todos');
 
   useEffect(() => {
-    if (isOpen) setRender(true);
-  }, [isOpen]);
+    if (isOpen) {
+      setRender(true);
+      if (currentFilters) {
+        setCat(currentFilters.cat || 'Todas');
+        setLoc(currentFilters.loc || 'Todos los Almacenes');
+        setStatus(currentFilters.status || 'Todos');
+      }
+    }
+  }, [isOpen, currentFilters]);
 
   const handleAnimationEnd = () => {
     if (!isOpen) setRender(false);
   };
 
   if (!render) return null;
+
+  const handleClear = () => {
+    const clean = { cat: 'Todas', loc: 'Todos los Almacenes', status: 'Todos' };
+    setCat(clean.cat);
+    setLoc(clean.loc);
+    setStatus(clean.status);
+    onApply(clean);
+    onClose();
+  };
+
+  const handleApply = () => {
+    onApply({ cat, loc, status });
+    onClose();
+  };
 
   return (
     <div 
@@ -32,33 +56,37 @@ export const FilterModal = ({ isOpen, onClose }) => {
         <div className={styles.body}>
           <div className={styles.formGroup}>
             <label>Categoría</label>
-            <select className={styles.select}>
-              <option>Todas</option>
-              <option>Tubería</option>
-              <option>Válvulas</option>
-              <option>EPP</option>
+            <select className={styles.select} value={cat} onChange={(e) => setCat(e.target.value)}>
+              <option value="Todas">Todas</option>
+              <option value="Tubería">Tubería</option>
+              <option value="Válvulas">Válvulas</option>
+              <option value="Conexiones">Conexiones</option>
+              <option value="EPP">EPP</option>
+              <option value="Fluidos">Fluidos</option>
+              <option value="Soldadura">Soldadura</option>
             </select>
           </div>
           <div className={styles.formGroup}>
             <label>Ubicación</label>
-            <select className={styles.select}>
-              <option>Todos los Almacenes</option>
-              <option>Almacén A</option>
-              <option>Almacén B</option>
+            <select className={styles.select} value={loc} onChange={(e) => setLoc(e.target.value)}>
+              <option value="Todos los Almacenes">Todos los Almacenes</option>
+              <option value="Almacén A">Almacén A</option>
+              <option value="Almacén B">Almacén B</option>
+              <option value="Almacén C">Almacén C</option>
             </select>
           </div>
           <div className={styles.formGroup}>
             <label>Estado del Stock</label>
-            <select className={styles.select}>
-              <option>Todos</option>
-              <option>Stock OK</option>
-              <option>Crítico</option>
+            <select className={styles.select} value={status} onChange={(e) => setStatus(e.target.value)}>
+              <option value="Todos">Todos</option>
+              <option value="Stock OK">Stock OK</option>
+              <option value="Crítico">Crítico</option>
             </select>
           </div>
         </div>
         <div className={styles.footer}>
-          <button className={styles.btnSecondary} onClick={onClose}>Limpiar</button>
-          <button className={styles.btnPrimary} onClick={onClose}>Aplicar Filtros</button>
+          <button className={styles.btnSecondary} onClick={handleClear}>Limpiar</button>
+          <button className={styles.btnPrimary} onClick={handleApply}>Aplicar Filtros</button>
         </div>
       </div>
     </div>

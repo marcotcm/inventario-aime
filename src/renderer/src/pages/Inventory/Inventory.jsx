@@ -1,60 +1,108 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { MainLayout } from '../../layouts/MainLayout/MainLayout';
 import { InventoryTable } from '../../components/InventoryTable/InventoryTable';
+import { NewMaterialModal } from '../../components/Modals/NewMaterialModal';
 import { EntryModal } from '../../components/Modals/EntryModal';
 import { ExitModal } from '../../components/Modals/ExitModal';
 import { FilterModal } from '../../components/Modals/FilterModal';
+import { SerialsModal } from '../../components/Modals/SerialsModal';
+import { inventarioClientService } from '../../services/inventario.service';
 import styles from './Inventory.module.css';
 import { MdSearch, MdAdd, MdArrowUpward, MdArrowDownward, MdPictureAsPdf, MdFilterList } from 'react-icons/md';
 
 export const Inventory = () => {
+  const [isNewMatOpen, setIsNewMatOpen] = useState(false);
   const [isEntryOpen, setIsEntryOpen] = useState(false);
   const [isExitOpen, setIsExitOpen] = useState(false);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   
-  // 1. Estado para almacenar el texto de búsqueda
+  // Estado para el modal visor de seriales
+  const [serialModalMaterial, setSerialModalMaterial] = useState(null);
+
+  const [tableData, setTableData] = useState([]);
+  const [allMaterials, setAllMaterials] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
-
-  // Datos base del inventario
-  const tableData = [
-    { code: 'PM-0001', desc: 'Tubería de Acero 6"x6m', cat: 'Tubería', loc: 'Almacén A', unit: 'UND', stock: 450, min: 100, status: 'Stock OK' },
-    { code: 'PM-0005', desc: 'Válvula de Compuerta 4" ANSI 150', cat: 'Válvulas', loc: 'Almacén B', unit: 'UND', stock: 120, min: 30, status: 'Crítico' },
-    { code: 'PM-0012', desc: 'Empacadura Espiralada 4" RF', cat: 'Conexiones', loc: 'Almacén A', unit: 'UND', stock: 850, min: 150, status: 'Stock OK' },
-    { code: 'PM-0021', desc: 'Casco de Seguridad (Rojo) PDVSA', cat: 'EPP', loc: 'Almacén C', unit: 'UND', stock: 310, min: 50, status: 'Stock OK' },
-    { code: 'PM-0033', desc: 'Lubricante Multigrado SAE 15W-40', cat: 'Fluidos', loc: 'Almacén B', unit: 'LTR', stock: 75, min: 200, status: 'Crítico' },
-    { code: 'PM-0041', desc: 'Electrodos de Soldadura E7018 1/8"', cat: 'Soldadura', loc: 'Almacén A', unit: 'KG', stock: 180, min: 50, status: 'Stock OK' },
-    { code: 'PM-0045', desc: 'Brida Ciega 4" ANSI 150', cat: 'Conexiones', loc: 'Almacén A', unit: 'UND', stock: 50, min: 20, status: 'Stock OK' },
-    { code: 'PM-0052', desc: 'Grasa Litio Multipropósito', cat: 'Fluidos', loc: 'Almacén B', unit: 'KG', stock: 15, min: 40, status: 'Crítico' },
-  ];
-
-  // 2. Lógica de filtrado reactiva
-  const filteredData = tableData.filter((item) => {
-    const term = searchTerm.toLowerCase();
-    return (
-      item.code.toLowerCase().includes(term) ||
-      item.desc.toLowerCase().includes(term)
-    );
+  const [filters, setFilters] = useState({
+    cat: 'Todas',
+    loc: 'Todos los Almacenes',
+    status: 'Todos'
   });
+
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 6;
+
+  const cargarInventario = useCallback(async () => {
+    try {
+      const dataFiltrada = await inventarioClientService.obtenerInventario({
+        search: searchTerm,
+        ...filters
+      });
+      const todos = await inventarioClientService.obtenerInventario({});
+      setTableData(dataFiltrada);
+      setAllMaterials(todos);
+      setCurrentPage(1);
+    } catch (error) {
+      console.error('Error cargando inventario:', error);
+    }
+  }, [searchTerm, filters]);
+
+  useEffect(() => {
+    cargarInventario();
+  }, [cargarInventario]);
+
+  const handleCrearMaterial = async (nuevoMat) => {
+    await inventarioClientService.crearNuevoMaterial(nuevoMat);
+    await cargarInventario();
+  };
+
+  const handleRegistrarEntrada = async (datosEntrada) => {
+    await inventarioClientService.registrarEntrada(datosEntrada);
+    await cargarInventario();
+  };
+
+  const handleRegistrarSalida = async (datosSalida) => {
+    await inventarioClientService.registrarSalida(datosSalida);
+    await cargarInventario();
+  };
+
+  const handleExportar = async () => {
+    try {
+      const res = await inventarioClientService.exportarInventario();
+      if (res.exported) {
+        alert(`Inventario exportado exitosamente en:\n${res.filePath}`);
+      }
+    } catch (error) {
+      alert(`Error al exportar: ${error.message}`);
+    }
+  };
+
+  const totalPages = Math.max(1, Math.ceil(tableData.length / itemsPerPage));
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const paginatedData = tableData.slice(startIndex, startIndex + itemsPerPage);
+
+  const filtrosActivosCount =
+    (filters.cat !== 'Todas' ? 1 : 0) +
+    (filters.loc !== 'Todos los Almacenes' ? 1 : 0) +
+    (filters.status !== 'Todos' ? 1 : 0);
 
   return (
     <MainLayout>
-      <h2 className={styles.pageTitle}>INVENTARIO DE MATERIALES (PETROBOZCAN)</h2>
+      <h2 className={styles.pageTitle}>INVENTARIO DE MATERIALES AIT (PETROBOSCAN)</h2>
 
       <div className={styles.container}>
         <div className={styles.toolbar}>
           <div className={styles.searchBox}>
             <MdSearch size={22} color="var(--text-secondary)" />
-            {/* 3. Conectamos el input al estado */}
             <input 
               type="text" 
-              placeholder="Buscar material por Código, Nombre..." 
+              placeholder="Buscar material por Código, Nombre, Categoría..." 
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
 
           <div className={styles.actions}>
-            <button className={`${styles.btn} ${styles.btnPrimary}`} onClick={() => setIsEntryOpen(true)}>
+            <button className={`${styles.btn} ${styles.btnPrimary}`} onClick={() => setIsNewMatOpen(true)}>
               Nuevo Material <MdAdd size={18} />
             </button>
             <button className={`${styles.btn} ${styles.btnDark}`} onClick={() => setIsEntryOpen(true)}>
@@ -63,35 +111,83 @@ export const Inventory = () => {
             <button className={`${styles.btn} ${styles.btnDark}`} onClick={() => setIsExitOpen(true)}>
               Registrar Salida <MdArrowDownward size={18} />
             </button>
-            <button className={`${styles.btn} ${styles.btnDark}`}>
-              <MdPictureAsPdf size={18} /> Exportar PDF
+            <button className={`${styles.btn} ${styles.btnDark}`} onClick={handleExportar}>
+              <MdPictureAsPdf size={18} /> Exportar Excel/CSV
             </button>
             <button className={`${styles.btn} ${styles.btnOutline}`} onClick={() => setIsFilterOpen(true)}>
-              Filtrar <MdFilterList size={18} />
+              Filtrar {filtrosActivosCount > 0 ? `(${filtrosActivosCount})` : ''} <MdFilterList size={18} />
             </button>
           </div>
         </div>
 
-        {/* 4. Le pasamos a la tabla los datos filtrados en lugar de los totales */}
-        <InventoryTable data={filteredData} />
+        <InventoryTable 
+          data={paginatedData} 
+          onViewSerials={(mat) => setSerialModalMaterial(mat)} 
+        />
 
         <div className={styles.pagination}>
-          {/* Mostramos dinámicamente cuántos resultados coinciden */}
-          <div>Mostrando {filteredData.length} de {tableData.length} Materiales</div>
+          <div>
+            Mostrando {tableData.length === 0 ? 0 : startIndex + 1}-
+            {Math.min(startIndex + itemsPerPage, tableData.length)} de {tableData.length} Materiales
+          </div>
           <div className={styles.pageControls}>
-            <button className={styles.pageBtn}>Anterior</button>
-            <button className={`${styles.pageBtn} ${styles.pageBtnActive}`}>1</button>
-            <button className={styles.pageBtn}>2</button>
-            <span className={styles.pageDots}>...</span>
-            <button className={styles.pageBtn}>63</button>
-            <button className={styles.pageBtn}>Siguiente</button>
+            <button 
+              className={styles.pageBtn} 
+              disabled={currentPage === 1}
+              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+            >
+              Anterior
+            </button>
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+              <button
+                key={page}
+                onClick={() => setCurrentPage(page)}
+                className={`${styles.pageBtn} ${currentPage === page ? styles.pageBtnActive : ''}`}
+              >
+                {page}
+              </button>
+            ))}
+            <button 
+              className={styles.pageBtn} 
+              disabled={currentPage === totalPages}
+              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+            >
+              Siguiente
+            </button>
           </div>
         </div>
       </div>
 
-      <EntryModal isOpen={isEntryOpen} onClose={() => setIsEntryOpen(false)} />
-      <ExitModal isOpen={isExitOpen} onClose={() => setIsExitOpen(false)} />
-      <FilterModal isOpen={isFilterOpen} onClose={() => setIsFilterOpen(false)} />
+      <NewMaterialModal 
+        isOpen={isNewMatOpen} 
+        onClose={() => setIsNewMatOpen(false)} 
+        onSave={handleCrearMaterial} 
+      />
+      <EntryModal 
+        isOpen={isEntryOpen} 
+        onClose={() => setIsEntryOpen(false)} 
+        materiales={allMaterials}
+        onSave={handleRegistrarEntrada}
+        onViewSerials={(mat) => setSerialModalMaterial(mat)}
+      />
+      <ExitModal 
+        isOpen={isExitOpen} 
+        onClose={() => setIsExitOpen(false)} 
+        materiales={allMaterials}
+        onSave={handleRegistrarSalida}
+        onViewSerials={(mat) => setSerialModalMaterial(mat)}
+      />
+      <FilterModal 
+        isOpen={isFilterOpen} 
+        onClose={() => setIsFilterOpen(false)} 
+        currentFilters={filters}
+        onApply={(nuevosFiltros) => setFilters(nuevosFiltros)} 
+      />
+      <SerialsModal 
+        isOpen={!!serialModalMaterial} 
+        onClose={() => setSerialModalMaterial(null)} 
+        material={serialModalMaterial} 
+      />
     </MainLayout>
   );
 };
