@@ -6,6 +6,7 @@ export const ExitModal = ({ isOpen, onClose, materiales = [], onSave, onViewSeri
   const [render, setRender] = useState(isOpen);
   const [fecha, setFecha] = useState('');
   const [trabajador, setTrabajador] = useState('');
+  const [destino, setDestino] = useState(''); // Campo separado para el destino/área
   const [aprobadoPor, setAprobadoPor] = useState('');
   const [motivo, setMotivo] = useState('');
   const [items, setItems] = useState([{ code: '', qty: 1, serials: [''] }]);
@@ -18,6 +19,7 @@ export const ExitModal = ({ isOpen, onClose, materiales = [], onSave, onViewSeri
       setError('');
       setFecha(new Date().toISOString().split('T')[0]);
       setTrabajador('');
+      setDestino('');
       setAprobadoPor('');
       setMotivo('');
       const defaultCode = materiales.length > 0 ? materiales[0].code : '';
@@ -26,7 +28,6 @@ export const ExitModal = ({ isOpen, onClose, materiales = [], onSave, onViewSeri
     wasOpen.current = isOpen;
   }, [isOpen, materiales]);
 
-  // Hacer que el error flotante desaparezca automáticamente a los 4 segundos
   useEffect(() => {
     if (!error) return;
     const timer = setTimeout(() => {
@@ -86,6 +87,7 @@ export const ExitModal = ({ isOpen, onClose, materiales = [], onSave, onViewSeri
   const validarFormulario = () => {
     if (!fecha) return 'Debe seleccionar la fecha de salida.';
     if (!trabajador.trim()) return 'Debe ingresar los datos del trabajador receptor.';
+    if (!destino.trim()) return 'Debe especificar el destino o área donde se instalará el material.';
     if (!aprobadoPor.trim()) return 'Debe indicar quién aprobó la salida.';
 
     const todosLosSeriales = [];
@@ -142,9 +144,12 @@ export const ExitModal = ({ isOpen, onClose, materiales = [], onSave, onViewSeri
       return;
     }
 
+    // Concatenamos el trabajador y el destino para mantener compatibilidad con las tablas y reportes
+    const trabajadorConDestino = `${trabajador.trim()} (${destino.trim()})`;
+
     try {
       setError('');
-      await onSave({ fecha, trabajador, aprobadoPor, items, motivo });
+      await onSave({ fecha, trabajador: trabajadorConDestino, aprobadoPor, items, motivo });
       onClose();
     } catch (err) {
       setError(err.message);
@@ -185,6 +190,17 @@ export const ExitModal = ({ isOpen, onClose, materiales = [], onSave, onViewSeri
               placeholder="Nombre / Ficha del trabajador" 
               value={trabajador}
               onChange={(e) => setTrabajador(e.target.value)}
+            />
+          </div>
+
+          <div className={styles.formGroup}>
+            <label>Destino / Área (Instalación)</label>
+            <input 
+              type="text" 
+              className={styles.input} 
+              placeholder="Ej. Planta de Gas, Pozo B-21, Taller..." 
+              value={destino}
+              onChange={(e) => setDestino(e.target.value)}
             />
           </div>
 
@@ -310,7 +326,6 @@ export const ExitModal = ({ isOpen, onClose, materiales = [], onSave, onViewSeri
           </div>
         </div>
 
-        {/* Notificación flotante superpuesta */}
         {error && (
           <div className={styles.floatingToast}>
             <MdErrorOutline size={20} style={{ flexShrink: 0 }} />

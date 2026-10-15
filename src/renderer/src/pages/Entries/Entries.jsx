@@ -1,104 +1,213 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { MainLayout } from '../../layouts/MainLayout/MainLayout';
 import { EntryModal } from '../../components/Modals/EntryModal';
-import { FilterModal } from '../../components/Modals/FilterModal';
+import { inventarioClientService } from '../../services/inventario.service';
+import { useReportExport } from '../../hooks/useReportExport';
 import styles from './Entries.module.css';
-import { MdAdd, MdFilterList, MdPictureAsPdf, MdKeyboardArrowDown, MdKeyboardArrowUp, MdDateRange, MdInventory2 } from 'react-icons/md';
+import { MdDateRange, MdKeyboardArrowDown, MdKeyboardArrowUp, MdAdd, MdTableView, MdPictureAsPdf } from 'react-icons/md';
 
 export const Entries = () => {
-  const [isEntryOpen, setIsEntryOpen] = useState(false);
-  const [isFilterOpen, setIsFilterOpen] = useState(false);
-  const [expandedGroups, setExpandedGroups] = useState({ '15-10-2026': true });
+  const [movimientos, setMovimientos] = useState([]);
+  const [inventario, setInventario] = useState([]);
+  const [expandedDates, setExpandedDates] = useState({});
+  const [isEntryModalOpen, setIsEntryModalOpen] = useState(false);
+  const { exportReport, isExporting } = useReportExport();
 
-  const toggleGroup = (date) => {
-    setExpandedGroups(prev => ({ ...prev, [date]: !prev[date] }));
+  const [searchTerm, setSearchTerm] = useState('');
+  const [dateRange, setDateRange] = useState({ desde: '', hasta: '' });
+
+  const cargarDatos = useCallback(async () => {
+    try {
+      const [movsData, invData] = await Promise.all([
+        inventarioClientService.obtenerMovimientos('ENTRADA'),
+        inventarioClientService.obtenerInventario({ departamento: 'TODOS' })
+      ]);
+      setMovimientos(movsData);
+      setInventario(invData?.items || invData || []);
+
+      if (movsData.length > 0) {
+        const fechasUnicas = [...new Set(movsData.map(m => m.fecha))].sort((a, b) => new Date(b) - new Date(a));
+        if (fechasUnicas.length > 0 && Object.keys(expandedDates).length === 0) {
+          setExpandedDates({ [fechasUnicas[0]]: true });
+        }
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  }, []);
+
+  useEffect(() => { cargarDatos(); }, [cargarDatos]);
+
+  const handleNuevaEntrada = async (datos) => {
+    await inventarioClientService.registrarEntrada(datos);
+    await cargarDatos();
   };
 
-  const groupedData = [
-    {
-      date: '15-10-2026',
-      summary: '3 Materiales ingresados | Total: 450 UND recibidas.',
-      records: [
-        { time: '08:30 AM', code: 'PM-0001', desc: 'Tubería de Acero 6"x6m', qty: '+300 UND', unit: 'UND', provider: 'Aceros Monagas', doc: 'F-00928' },
-        { time: '09:15 AM', code: 'PM-0012', desc: 'Empacadura Espiralada 4" RF', qty: '+100 UND', unit: 'UND', provider: 'Conexiones Nacionales', doc: 'FA-771' },
-        { time: '11:00 AM', code: 'PM-0041', desc: 'Electrodos de Soldadura E7018 1/8"', qty: '+50 KG', unit: 'KG', provider: 'Suministros Soldafacil', doc: 'SF-312' }
-      ]
-    },
-    { date: '14-10-2026', summary: '2 Materiales | 180 UND', records: [] },
-    { date: '13-10-2026', summary: '4 Materiales | 510 UND', records: [] },
-    { date: '12-10-2026', summary: '4 Materiales | 510 UND', records: [] },
-    { date: '11-10-2026', summary: '2 Materiales | 180 UND', records: [] },
-    { date: '10-10-2026', summary: '1 Materiales | 220 UND', records: [] },
-  ];
+  const toggleDate = (date) => setExpandedDates(prev => ({ ...prev, [date]: !prev[date] }));
+  const formatTime = (isoString) => new Date(isoString).toLocaleTimeString('es-VE', { hour: '2-digit', minute: '2-digit' });
+  const getMaterialInfo = (code) => inventario.find(m => m.code === code) || { desc: 'Desconocido', unit: 'UND', marca: '', modelo: '' };
+
+  const filteredMovimientos = movimientos.filter(mov => {
+    let matchDate = true;
+    if (dateRange.desde && dateRange.hasta) {
+      matchDate = mov.fecha >= dateRange.desde && mov.fecha <= dateRange.hasta;
+    } else if (dateRange.desde) {
+      matchDate = mov.fecha >= dateRange.desde;
+    } else if (dateRange.hasta) {
+      matchDate = mov.fecha <= dateRange.hasta;
+    }
+
+    let matchText = true;
+    if (searchTerm.trim() !== '') {
+      const term = searchTerm.toLowerCase();
+      
+      const movMatches = mov.proveedor.toLowerCase().includes(term) || 
+                         mov.factura.toLowerCase().includes(term) ||
+                         mov.id.toLowerCase().includes(term);
+
+      const itemsMatch = mov.items.some(it => {
+        const matInfo = getMaterialInfo(it.code);
+        return it.code.toLowerCase().includes(term) ||
+               (it.serials && it.serials.some(s => s.toLowerCase().includes(term))) ||
+               matInfo.desc.toLowerCase().includes(term) ||
+               (matInfo.marca && matInfo.marca.toLowerCase().includes(term)) ||
+               (matInfo.modelo && matInfo.modelo.toLowerCase().includes(term));
+      });
+
+      matchText = movMatches || itemsMatch;
+    }
+
+    return matchDate && matchText;
+  });
+
+  const groupedData = filteredMovimientos.reduce((acc, mov) => {
+    if (!acc[mov.fecha]) acc[mov.fecha] = { movimientos: [], totalItems: 0, totalQty: 0 };
+    acc[mov.fecha].movimientos.push(mov);
+    mov.items.forEach(item => {
+      acc[mov.fecha].totalItems += 1;
+      acc[mov.fecha].totalQty += Number(item.qty);
+    });
+    return acc;
+  }, {});
+
+  const sortedDates = Object.keys(groupedData).sort((a, b) => new Date(b) - new Date(a));
+
+  const handleExport = (formato) => {
+    exportReport(formato, 'HISTORIAL_ENTRADAS', filteredMovimientos, { desde: dateRange.desde || 'Inicio', hasta: dateRange.hasta || 'Actual' });
+  };
 
   return (
     <MainLayout>
       <div className={styles.headerRow}>
         <h2 className={styles.pageTitle}>REGISTRO Y CONSULTA DE INGRESOS</h2>
         <div className={styles.actions}>
-          <button className={`${styles.btn} ${styles.btnGreen}`} onClick={() => setIsEntryOpen(true)}>
+          <button className={styles.btnEntry} onClick={() => setIsEntryModalOpen(true)}>
             Nueva Entrada <MdAdd size={18} />
           </button>
-          <button className={`${styles.btn} ${styles.btnOutline}`} onClick={() => setIsFilterOpen(true)}>
-            Filtrar por Fecha/Proveedor <MdFilterList size={18} />
-          </button>
-          <button className={`${styles.btn} ${styles.btnOutline}`}>
-            <MdPictureAsPdf size={18} /> Exportar Excel
-          </button>
+          
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center', background: 'var(--bg-card)', padding: '6px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+            <span style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: 'bold' }}>DESDE:</span>
+            <input type="date" className={styles.filterInput} value={dateRange.desde} onChange={(e) => setDateRange({...dateRange, desde: e.target.value})} />
+            
+            <span style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: 'bold', marginLeft: '5px' }}>HASTA:</span>
+            <input type="date" className={styles.filterInput} value={dateRange.hasta} onChange={(e) => setDateRange({...dateRange, hasta: e.target.value})} />
+            
+            <div style={{ width: '1px', height: '24px', background: 'var(--border-color)', margin: '0 5px' }}></div>
+            
+            <input 
+              type="text" 
+              className={styles.filterInput}
+              style={{ width: '350px' }}
+              placeholder="Buscar prov, marca, serial, cód..." 
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <button className={styles.btnOutline} onClick={() => handleExport('EXCEL')} disabled={isExporting}>
+              <MdTableView size={16} color="#16A34A" /> {isExporting ? '...' : 'Excel'}
+            </button>
+            <button className={styles.btnOutline} onClick={() => handleExport('PDF')} disabled={isExporting}>
+              <MdPictureAsPdf size={16} color="#DC2626" /> {isExporting ? '...' : 'PDF'}
+            </button>
+          </div>
         </div>
       </div>
 
       <div className={styles.container}>
         <div className={styles.accordionContainer}>
-          {groupedData.map((group, idx) => (
-            <div key={idx} className={styles.groupCard}>
-              <div className={styles.groupHeader} onClick={() => toggleGroup(group.date)}>
-                <div className={styles.groupTitle}>
-                  <MdDateRange size={18} /> Fecha: {group.date}
-                  <span className={styles.groupSummary}>
-                    {expandedGroups[group.date] ? <><MdInventory2 size={16} /> Resumen del día: {group.summary}</> : `[${group.summary}]`}
-                  </span>
-                </div>
-                {expandedGroups[group.date] ? <MdKeyboardArrowUp size={24} /> : <MdKeyboardArrowDown size={24} />}
-              </div>
+          {sortedDates.length === 0 ? (
+            <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-secondary)' }}>No se encontraron ingresos con los filtros aplicados.</div>
+          ) : (
+            sortedDates.map((date) => {
+              const group = groupedData[date];
+              const isExpanded = !!expandedDates[date];
 
-              {expandedGroups[group.date] && group.records.length > 0 && (
-                <div className={styles.tableWrapper}>
-                  <table className={styles.table}>
-                    <thead>
-                      <tr>
-                        <th>HORA <MdKeyboardArrowUp size={14} style={{verticalAlign: 'middle'}}/></th>
-                        <th>CÓDIGO MATERIAL</th>
-                        <th>DESCRIPCIÓN DEL MATERIAL</th>
-                        <th>CANTIDAD (+ unidades)</th>
-                        <th>UNIDAD</th>
-                        <th>PROVEEDOR</th>
-                        <th>NRO. DOCUMENTO (Guía/Factura)</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {group.records.map((rec, i) => (
-                        <tr key={i}>
-                          <td>{rec.time}</td>
-                          <td style={{ fontWeight: '600' }}>{rec.code}</td>
-                          <td>{rec.desc}</td>
-                          <td><span className={styles.pillGreen}>{rec.qty}</span></td>
-                          <td>{rec.unit}</td>
-                          <td>{rec.provider}</td>
-                          <td>{rec.doc}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+              return (
+                <div key={date} className={styles.groupCard}>
+                  <div className={styles.groupHeader} onClick={() => toggleDate(date)}>
+                    <div className={styles.groupTitle}>
+                      <MdDateRange size={18} /> Fecha: {date}
+                      {isExpanded ? (
+                        <span className={styles.groupSummary}>
+                          Resumen del día: {group.totalItems} Materiales ingresados | Total: {group.totalQty} unidades recibidas.
+                        </span>
+                      ) : (
+                        <span className={styles.groupSummaryCollapsed}>
+                          [{group.totalItems} Materiales | {group.totalQty} unidades]
+                        </span>
+                      )}
+                    </div>
+                    {isExpanded ? <MdKeyboardArrowUp size={24} color="var(--text-secondary)"/> : <MdKeyboardArrowDown size={24} color="var(--text-secondary)"/>}
+                  </div>
+
+                  {isExpanded && (
+                    <div className={styles.tableWrapper}>
+                      <table className={styles.table}>
+                        <thead>
+                          <tr>
+                            <th>HORA</th>
+                            <th>CÓDIGO / MARCA</th>
+                            <th>DESCRIPCIÓN DEL MATERIAL</th>
+                            <th>CANTIDAD</th>
+                            <th>PROVEEDOR</th>
+                            <th>SERIALES</th>
+                            <th>GUÍA/FACTURA</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {group.movimientos.map((mov) => (
+                            mov.items.map((it, idx) => {
+                              const matInfo = getMaterialInfo(it.code);
+                              return (
+                                <tr key={`${mov.id}-${idx}`}>
+                                  <td style={{ color: 'var(--text-secondary)' }}>{formatTime(mov.fechaHora)}</td>
+                                  <td>
+                                    <div style={{ fontWeight: '700' }}>{it.code}</div>
+                                    <div style={{ fontSize: '10px', color: 'var(--text-secondary)' }}>{matInfo.marca}</div>
+                                  </td>
+                                  <td>{matInfo.desc}</td>
+                                  <td><span className={styles.pillGreen}>+{it.qty} {matInfo.unit}</span></td>
+                                  <td>{mov.proveedor}</td>
+                                  <td style={{ fontSize: '11px', color: 'var(--text-secondary)', maxWidth: '150px' }}>{it.serials?.join(', ')}</td>
+                                  <td>{mov.factura}</td>
+                                </tr>
+                              );
+                            })
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
-          ))}
+              );
+            })
+          )}
         </div>
       </div>
 
-      <EntryModal isOpen={isEntryOpen} onClose={() => setIsEntryOpen(false)} />
-      <FilterModal isOpen={isFilterOpen} onClose={() => setIsFilterOpen(false)} />
+      <EntryModal isOpen={isEntryModalOpen} onClose={() => setIsEntryModalOpen(false)} materiales={inventario} onSave={handleNuevaEntrada} />
     </MainLayout>
   );
 };

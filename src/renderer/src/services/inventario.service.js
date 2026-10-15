@@ -6,6 +6,13 @@ export const inventarioClientService = {
     return res.data;
   },
 
+  async obtenerMovimientos(tipo) {
+    if (!window.api?.inventario) return [];
+    const res = await window.api.inventario.obtenerMovimientos(tipo);
+    if (!res.ok) throw new Error(res.error);
+    return res.data;
+  },
+
   async crearNuevoMaterial(material) {
     const res = await window.api.inventario.crear(material);
     if (!res.ok) throw new Error(res.error);
@@ -28,5 +35,10 @@ export const inventarioClientService = {
     const res = await window.api.inventario.exportar();
     if (!res.ok) throw new Error(res.error);
     return res;
+  },
+  async actualizarMaterial(code, datos) {
+    const res = await window.api.inventario.actualizar(code, datos);
+    if (!res.ok) throw new Error(res.error);
+    return res.data;
   }
 };

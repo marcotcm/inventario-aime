@@ -1,10 +1,16 @@
 import { productoCrud } from '../crud/producto.crud';
-import { dialog } from 'electron';
-import fs from 'fs';
 
 export const inventarioService = {
   listarInventario: (filtros = {}) => {
     let productos = productoCrud.obtenerTodos();
+
+    if (filtros.departamento) {
+      const dep = filtros.departamento.toUpperCase();
+      if (dep === 'NINGUNO') return { items: [], totalItems: 0, totalPages: 1 }; 
+      if (dep !== 'TODOS') {
+        productos = productos.filter((p) => p.departamento === dep);
+      }
+    }
 
     if (filtros.search && filtros.search.trim() !== '') {
       const term = filtros.search.toLowerCase();
@@ -12,8 +18,13 @@ export const inventarioService = {
         (p) =>
           p.code.toLowerCase().includes(term) ||
           p.desc.toLowerCase().includes(term) ||
-          p.cat.toLowerCase().includes(term)
+          (p.marca && p.marca.toLowerCase().includes(term))
       );
+    }
+
+    if (filtros.marca && filtros.marca.trim() !== '') {
+      const marcaTerm = filtros.marca.toLowerCase();
+      productos = productos.filter((p) => p.marca && p.marca.toLowerCase().includes(marcaTerm));
     }
 
     if (filtros.cat && filtros.cat !== 'Todas') {
@@ -28,7 +39,19 @@ export const inventarioService = {
       productos = productos.filter((p) => p.status === filtros.status);
     }
 
-    return productos;
+    const totalItems = productos.length;
+
+    if (filtros.limit) {
+      const limit = parseInt(filtros.limit);
+      const page = filtros.page ? parseInt(filtros.page) : 1;
+      const totalPages = Math.max(1, Math.ceil(totalItems / limit));
+      const startIndex = (page - 1) * limit;
+      
+      const itemsPaginados = productos.slice(startIndex, startIndex + limit);
+      return { items: itemsPaginados, totalItems, totalPages };
+    }
+
+    return { items: productos, totalItems, totalPages: 1 };
   },
 
   crearMaterial: (datos) => {
@@ -37,68 +60,16 @@ export const inventarioService = {
     }
     return productoCrud.crear(datos);
   },
-
-  procesarEntrada: (datosEntrada) => {
-    const { fecha, proveedor, factura, items, notas } = datosEntrada;
-    if (!proveedor || !proveedor.trim()) {
-      throw new Error('El nombre del Proveedor es obligatorio.');
+  actualizarMaterial: (code, datos) => {
+    if (!code || !datos.desc || !datos.desc.trim()) {
+      throw new Error('La descripción del material es obligatoria.');
     }
-    if (!factura || !factura.trim()) {
-      throw new Error('El Nro. de Referencia/Factura es obligatorio.');
-    }
-    if (!items || items.length === 0) {
-      throw new Error('Debe incluir al menos un material en la entrada.');
-    }
-
-    return productoCrud.procesarLoteStock(items, 'ENTRADA', {
-      fecha: fecha || new Date().toISOString().split('T')[0],
-      proveedor: proveedor.trim(),
-      factura: factura.trim(),
-      notas: (notas || '').trim()
-    });
+    return productoCrud.actualizar(code, datos);
   },
-
-  procesarSalida: (datosSalida) => {
-    const { fecha, trabajador, aprobadoPor, items, motivo } = datosSalida;
-    if (!trabajador || !trabajador.trim()) {
-      throw new Error('Los datos del trabajador receptor son obligatorios.');
+  actualizarSerialesStock: (code, serials) => {
+    if (!code || !Array.isArray(serials)) {
+      throw new Error('Datos de seriales inválidos.');
     }
-    if (!aprobadoPor || !aprobadoPor.trim()) {
-      throw new Error('El campo "Aprobado Por" es obligatorio.');
-    }
-    if (!items || items.length === 0) {
-      throw new Error('Debe incluir al menos un material para retirar.');
-    }
-
-    return productoCrud.procesarLoteStock(items, 'SALIDA', {
-      fecha: fecha || new Date().toISOString().split('T')[0],
-      trabajador: trabajador.trim(),
-      aprobadoPor: aprobadoPor.trim(),
-      motivo: (motivo || '').trim()
-    });
-  },
-
-  exportarCSV: async () => {
-    const productos = productoCrud.obtenerTodos();
-    const { canceled, filePath } = await dialog.showSaveDialog({
-      title: 'Exportar Inventario PDVSA Petrobozcan',
-      defaultPath: `Inventario_Petrobozcan_${new Date().toISOString().split('T')[0]}.csv`,
-      filters: [{ name: 'Archivo CSV (Excel)', extensions: ['csv'] }]
-    });
-
-    if (canceled || !filePath) {
-      return { exported: false };
-    }
-
-    const cabeceras = ['CODIGO;DESCRIPCION;CATEGORIA;UBICACION;UNIDAD;STOCK ACTUAL;STOCK MINIMO;ESTADO;SERIALES'];
-    const filas = productos.map(
-      (p) =>
-        `${p.code};"${p.desc.replace(/"/g, '""')}";${p.cat};${p.loc};${p.unit};${p.stock};${p.min};${p.status};"${(p.serials || []).join(', ')}"`
-    );
-
-    const csvContent = '\uFEFF' + [cabeceras, ...filas].join('\n');
-    fs.writeFileSync(filePath, csvContent, 'utf-8');
-
-    return { exported: true, filePath };
+    return productoCrud.actualizarSerialesStock(code, serials);
   }
 };

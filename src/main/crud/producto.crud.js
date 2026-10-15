@@ -1,26 +1,43 @@
-import { db } from '../database/connection';
+import { getDb } from '../database/connection';
 import { ProductoModel } from '../models/producto.model';
 
 export const productoCrud = {
   obtenerTodos: () => {
-    const data = db.read();
-    return data.productos;
+    const db = getDb();
+    const materiales = db.prepare('SELECT * FROM materiales').all();
+    
+    return materiales.map(mat => {
+      const serialRows = db.prepare('SELECT serial FROM material_stock WHERE code = ? AND estado = ?').all(mat.code, 'DISPONIBLE');
+      const serials = serialRows.map(s => s.serial);
+      const stock = serials.length;
+      const status = ProductoModel.calcularEstado(stock, mat.min);
+      
+      return new ProductoModel({ ...mat, stock, status, serials });
+    });
   },
 
   obtenerPorCodigo: (code) => {
-    const data = db.read();
-    return data.productos.find((p) => p.code.toUpperCase() === code.toUpperCase());
+    const db = getDb();
+    const mat = db.prepare('SELECT * FROM materiales WHERE code = ?').get(code.toUpperCase());
+    if (!mat) return null;
+
+    const serialRows = db.prepare('SELECT serial FROM material_stock WHERE code = ? AND estado = ?').all(mat.code, 'DISPONIBLE');
+    const serials = serialRows.map(s => s.serial);
+    const stock = serials.length;
+    const status = ProductoModel.calcularEstado(stock, mat.min);
+
+    return new ProductoModel({ ...mat, stock, status, serials });
   },
 
   crear: (nuevoProducto) => {
-    const data = db.read();
+    const db = getDb();
     const codigoLimpio = (nuevoProducto.code || '').trim().toUpperCase();
 
     if (!codigoLimpio || !(nuevoProducto.desc || '').trim()) {
       throw new Error('El código y la descripción del material son obligatorios.');
     }
 
-    const existe = data.productos.some((p) => p.code.toUpperCase() === codigoLimpio);
+    const existe = db.prepare('SELECT code FROM materiales WHERE code = ?').get(codigoLimpio);
     if (existe) {
       throw new Error(`El código de material ${codigoLimpio} ya existe en el inventario.`);
     }
@@ -38,104 +55,76 @@ export const productoCrud = {
       throw new Error('Ha ingresado seriales repetidos en el mismo material.');
     }
 
-    const modelo = new ProductoModel({
-      ...nuevoProducto,
-      code: codigoLimpio,
-      serials: serialesLimpios
+    const trans = db.transaction(() => {
+      db.prepare(`
+        INSERT INTO materiales (code, desc, marca, modelo, departamento, cat, loc, unit, min, foto)
+        VALUES (@code, @desc, @marca, @modelo, @departamento, @cat, @loc, @unit, @min, @foto)
+      `).run({
+        code: codigoLimpio,
+        desc: nuevoProducto.desc.trim(),
+        marca: nuevoProducto.marca || 'N/A',
+        modelo: nuevoProducto.modelo || 'N/A',
+        departamento: nuevoProducto.departamento || 'AIT',
+        cat: nuevoProducto.cat || 'General',
+        loc: nuevoProducto.loc || 'Almacén A',
+        unit: nuevoProducto.unit || 'UND',
+        min: nuevoProducto.min || 10,
+        foto: nuevoProducto.foto || null
+      });
+
+      const insertStock = db.prepare('INSERT INTO material_stock (code, serial, estado) VALUES (?, ?, ?)');
+      for (const s of serialesLimpios) {
+        insertStock.run(codigoLimpio, s, 'DISPONIBLE');
+      }
     });
 
-    data.productos.unshift(modelo);
-    db.write(data);
-    return modelo;
+    trans();
+    return productoCrud.obtenerPorCodigo(codigoLimpio);
   },
+  actualizar: (code, datos) => {
+    const db = getDb();
+    const codigoLimpio = code.toUpperCase();
 
-  // Transacción Todo-o-Nada: Si el material #2 falla, el material #1 NO se modifica
-  procesarLoteStock: (items, tipo, datosMovimiento) => {
-    const data = db.read();
-
-    if (!Array.isArray(items) || items.length === 0) {
-      throw new Error('Debe agregar al menos un material a la lista.');
+    const existe = db.prepare('SELECT code FROM materiales WHERE code = ?').get(codigoLimpio);
+    if (!existe) {
+      throw new Error(`El material con código ${codigoLimpio} no existe.`);
     }
 
-    for (let i = 0; i < items.length; i++) {
-      const item = items[i];
-      const numFila = i + 1;
-      const code = (item.code || '').trim().toUpperCase();
-      const cant = Number(item.qty);
+    db.prepare(`
+      UPDATE materiales 
+      SET desc = @desc, marca = @marca, modelo = @modelo, departamento = @departamento, cat = @cat, loc = @loc, unit = @unit, min = @min, foto = @foto
+      WHERE code = @code
+    `).run({
+      code: codigoLimpio,
+      desc: datos.desc.trim(),
+      marca: datos.marca || 'N/A',
+      modelo: datos.modelo || 'N/A',
+      departamento: datos.departamento || 'AIT',
+      cat: datos.cat || 'General',
+      loc: datos.loc || 'Almacén A',
+      unit: datos.unit || 'UND',
+      min: datos.min || 10,
+      foto: datos.foto || null
+    });
 
-      if (!code) {
-        throw new Error(`Fila #${numFila}: Debe seleccionar un material o quitar la fila con el botón X.`);
+    return productoCrud.obtenerPorCodigo(codigoLimpio);
+  },
+  actualizarSerialesStock: (code, nuevosSerials) => {
+    const db = getDb();
+    const codigoLimpio = code.toUpperCase();
+
+    const transaccion = db.transaction(() => {
+      // Borramos los seriales anteriores disponibles de este código
+      db.prepare("DELETE FROM material_stock WHERE code = ? AND estado = 'DISPONIBLE'").run(codigoLimpio);
+
+      // Insertamos los nuevos seriales actualizados
+      const insert = db.prepare('INSERT INTO material_stock (code, serial, estado) VALUES (?, ?, ?)');
+      for (const s of nuevosSerials) {
+        insert.run(codigoLimpio, s, 'DISPONIBLE');
       }
+    });
 
-      if (!cant || isNaN(cant) || cant <= 0) {
-        throw new Error(`Fila #${numFila} (${code}): La cantidad debe ser mayor a 0.`);
-      }
-
-      const rawSerials = Array.isArray(item.serials) ? item.serials : [];
-      if (rawSerials.length !== cant) {
-        throw new Error(`Fila #${numFila} (${code}): La cantidad de campos de serial no coincide con la cantidad (${cant}).`);
-      }
-
-      const serialesEnviados = rawSerials.map((s) => String(s).trim());
-      const tieneVacios = serialesEnviados.some((s) => s === '');
-      if (tieneVacios) {
-        throw new Error(`Fila #${numFila} (${code}): No puede dejar campos de serial en blanco.`);
-      }
-
-      // Verificar que no haya seriales repetidos dentro de la misma fila
-      const setFila = new Set(serialesEnviados.map((s) => s.toUpperCase()));
-      if (setFila.size !== serialesEnviados.length) {
-        throw new Error(`Fila #${numFila} (${code}): Ha escrito seriales duplicados.`);
-      }
-
-      const index = data.productos.findIndex((p) => p.code.toUpperCase() === code);
-      if (index === -1) {
-        throw new Error(`Fila #${numFila}: El material con código ${code} no existe.`);
-      }
-
-      const prod = data.productos[index];
-      const serialesActualesUpper = (prod.serials || []).map((s) => s.toUpperCase());
-
-      if (tipo === 'ENTRADA') {
-        for (const s of serialesEnviados) {
-          if (serialesActualesUpper.includes(s.toUpperCase())) {
-            throw new Error(`Fila #${numFila} (${prod.code}): El serial "${s}" ya existe en el inventario.`);
-          }
-        }
-        prod.stock += cant;
-        prod.serials = [...(prod.serials || []), ...serialesEnviados];
-      } else if (tipo === 'SALIDA') {
-        if (prod.stock < cant) {
-          throw new Error(`Fila #${numFila} (${prod.code}): Stock insuficiente. Disponible: ${prod.stock}, Solicitado: ${cant}.`);
-        }
-        for (const s of serialesEnviados) {
-          const existeEnProd = (prod.serials || []).some(
-            (existente) => existente.toUpperCase() === s.toUpperCase()
-          );
-          if (!existeEnProd) {
-            throw new Error(`Fila #${numFila} (${prod.code}): El serial "${s}" no se encuentra en el stock disponible.`);
-          }
-        }
-        const retirarUpper = serialesEnviados.map((s) => s.toUpperCase());
-        prod.stock -= cant;
-        prod.serials = (prod.serials || []).filter((s) => !retirarUpper.includes(s.toUpperCase()));
-      }
-
-      prod.status = ProductoModel.calcularEstado(prod.stock, prod.min);
-      data.productos[index] = prod;
-    }
-
-    // Solo si TODAS las filas pasaron sin errores, registramos el movimiento y guardamos en disco
-    const nuevoMov = {
-      id: `MOV-${Date.now()}`,
-      fechaHora: new Date().toISOString(),
-      tipo,
-      ...datosMovimiento,
-      items
-    };
-    data.movimientos.unshift(nuevoMov);
-
-    db.write(data);
-    return data.productos;
+    transaccion();
+    return productoCrud.obtenerPorCodigo(codigoLimpio);
   }
 };

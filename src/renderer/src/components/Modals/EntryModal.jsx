@@ -12,7 +12,17 @@ export const EntryModal = ({ isOpen, onClose, materiales = [], onSave, onViewSer
   const [error, setError] = useState('');
   const wasOpen = useRef(false);
 
-  // Reiniciar el formulario solo cuando se abre el modal
+  const proveedoresExistentes = [
+    'TechSupply CA',
+    'Inversiones SCADA C.A.',
+    'Telecomunicaciones de Venezuela',
+    'Distribuidora AIT',
+    'Global Networks',
+    'Aceros Monagas',
+    'Conexiones Nacionales',
+    'Suministros Soldafacil'
+  ];
+
   useEffect(() => {
     if (isOpen && !wasOpen.current) {
       setRender(true);
@@ -27,7 +37,6 @@ export const EntryModal = ({ isOpen, onClose, materiales = [], onSave, onViewSer
     wasOpen.current = isOpen;
   }, [isOpen, materiales]);
 
-  // Hacer que el error flotante desaparezca automáticamente a los 4 segundos
   useEffect(() => {
     if (!error) return;
     const timer = setTimeout(() => {
@@ -85,7 +94,7 @@ export const EntryModal = ({ isOpen, onClose, materiales = [], onSave, onViewSer
 
   const validarFormulario = () => {
     if (!fecha) return 'Debe seleccionar la fecha de ingreso.';
-    if (!proveedor.trim()) return 'Debe ingresar el nombre del proveedor.';
+    if (!proveedor.trim()) return 'Debe seleccionar el proveedor.';
     if (!factura.trim()) return 'Debe ingresar el Nro. de Referencia o Factura.';
 
     const todosLosSeriales = [];
@@ -162,13 +171,19 @@ export const EntryModal = ({ isOpen, onClose, materiales = [], onSave, onViewSer
           
           <div className={styles.formGroup}>
             <label>Proveedor</label>
-            <input 
-              type="text" 
-              className={styles.input} 
-              placeholder="Ej. Aceros Monagas" 
-              value={proveedor}
+            <select 
+              className={styles.select} 
+              value={proveedor} 
               onChange={(e) => setProveedor(e.target.value)}
-            />
+            >
+              <option value="">Seleccione un proveedor registrado...</option>
+              {proveedoresExistentes.map(p => (
+                <option key={p} value={p}>{p}</option>
+              ))}
+            </select>
+            <span style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '6px', display: 'block', lineHeight: '1.4' }}>
+              * Si desea incluir un proveedor distinto o un material que no existe, cierre esta ventana y use la opción <b>"Nuevo Material"</b>.
+            </span>
           </div>
 
           <div className={styles.formGroup}>
@@ -182,98 +197,99 @@ export const EntryModal = ({ isOpen, onClose, materiales = [], onSave, onViewSer
             />
           </div>
 
-          <div className={styles.formGroup}>
-            <label>Lista de Materiales a Ingresar</label>
-            {items.map((item, index) => {
-              const selectedMat = materiales.find((m) => m.code === item.code);
+          <div className={styles.separator}></div>
+          <label style={{ fontWeight: 'bold', display: 'block', marginBottom: '10px', color: 'var(--text-primary)' }}>Lista de Materiales a Ingresar</label>
 
-              return (
-                <div key={index} className={styles.dynamicItem}>
-                  <div className={styles.itemHeader}>
-                    <span className={styles.itemBadgeTitle}>Material #{index + 1}</span>
-                    {items.length > 1 && (
-                      <button
-                        type="button"
-                        className={styles.removeItemBtn}
-                        onClick={() => removeItem(index)}
-                        title="Quitar este material"
-                      >
-                        <MdClose size={14} /> Quitar
-                      </button>
-                    )}
-                  </div>
+          {items.map((item, index) => {
+            const selectedMat = materiales.find((m) => m.code === item.code);
 
-                  <div style={{ display: 'flex', gap: '10px', marginBottom: '8px' }}>
-                    <div style={{ flex: 2 }}>
-                      <select 
-                        className={styles.select}
-                        value={item.code}
-                        onChange={(e) => handleCodeChange(index, e.target.value)}
-                      >
-                        <option value="">-- Seleccione Material --</option>
-                        {materiales.map((m) => (
-                          <option key={m.code} value={m.code}>
-                            {m.code} - {m.desc} (Stock: {m.stock})
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                    <div style={{ flex: 1 }}>
-                      <input 
-                        type="number" 
-                        className={styles.input} 
-                        value={item.qty} 
-                        min="1"
-                        onChange={(e) => handleQtyChange(index, e.target.value)} 
-                        title="Cantidad"
-                      />
-                    </div>
-                  </div>
-
-                  {selectedMat && (
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                      <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
-                        Nuevos Seriales a Ingresar ({item.qty}):
-                      </span>
-                      <button 
-                        type="button" 
-                        className={styles.viewSerialsBtn}
-                        onClick={() => onViewSerials && onViewSerials(selectedMat)}
-                      >
-                        <MdQrCode2 size={14} />
-                        Ver seriales ({selectedMat.serials?.length || 0})
-                      </button>
-                    </div>
-                  )}
-                  
-                  {item.qty > 0 && (
-                    <div className={styles.serialGrid}>
-                      {item.serials.map((serial, sIndex) => (
-                        <input 
-                          key={sIndex}
-                          type="text" 
-                          className={styles.input} 
-                          placeholder={`Nuevo Serial #${sIndex + 1}`}
-                          value={serial}
-                          onChange={(e) => handleSerialChange(index, sIndex, e.target.value)}
-                        />
-                      ))}
-                    </div>
+            return (
+              <div key={index} className={styles.dynamicItem}>
+                <div className={styles.itemHeader}>
+                  <span className={styles.itemBadgeTitle}>Material #{index + 1}</span>
+                  {items.length > 1 && (
+                    <button
+                      type="button"
+                      className={styles.removeItemBtn}
+                      onClick={() => removeItem(index)}
+                      title="Quitar este material"
+                    >
+                      <MdClose size={14} /> Quitar
+                    </button>
                   )}
                 </div>
-              );
-            })}
-            <button 
-              type="button" 
-              onClick={addItem} 
-              style={{ background: 'none', border: 'none', color: 'var(--active-text)', fontWeight: '600', cursor: 'pointer', textAlign: 'left', marginTop: '5px' }}
-            >
-              + Añadir otro material
-            </button>
-          </div>
 
+                <div style={{ display: 'flex', gap: '10px', marginBottom: '8px' }}>
+                  <div style={{ flex: 2 }}>
+                    <select 
+                      className={styles.select}
+                      value={item.code}
+                      onChange={(e) => handleCodeChange(index, e.target.value)}
+                    >
+                      <option value="">-- Seleccione Material --</option>
+                      {materiales.map((m) => (
+                        <option key={m.code} value={m.code}>
+                          {m.code} - {m.desc} (Stock: {m.stock})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <input 
+                      type="number" 
+                      className={styles.input} 
+                      value={item.qty} 
+                      min="1"
+                      onChange={(e) => handleQtyChange(index, e.target.value)} 
+                      title="Cantidad"
+                    />
+                  </div>
+                </div>
+
+                {selectedMat && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                    <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
+                      Nuevos Seriales a Ingresar ({item.qty}):
+                    </span>
+                    <button 
+                      type="button" 
+                      className={styles.viewSerialsBtn}
+                      onClick={() => onViewSerials && onViewSerials(selectedMat)}
+                    >
+                      <MdQrCode2 size={14} />
+                      Ver seriales ({selectedMat.serials?.length || 0})
+                    </button>
+                  </div>
+                )}
+                
+                {item.qty > 0 && (
+                  <div className={styles.serialGrid}>
+                    {item.serials.map((serial, sIndex) => (
+                      <input 
+                        key={sIndex}
+                        type="text" 
+                        className={styles.input} 
+                        placeholder={`Nuevo Serial #${sIndex + 1}`}
+                        value={serial}
+                        onChange={(e) => handleSerialChange(index, sIndex, e.target.value)}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+          <button 
+            type="button" 
+            onClick={addItem} 
+            style={{ background: 'none', border: 'none', color: 'var(--active-text)', fontWeight: '600', cursor: 'pointer', textAlign: 'left', marginTop: '5px' }}
+          >
+            + Añadir otro material a la guía
+          </button>
+
+          <div className={styles.separator}></div>
           <div className={styles.formGroup}>
-            <label>Notas</label>
+            <label>Notas Adicionales (Opcional)</label>
             <textarea 
               className={styles.textarea} 
               rows="3" 
@@ -284,7 +300,6 @@ export const EntryModal = ({ isOpen, onClose, materiales = [], onSave, onViewSer
           </div>
         </div>
 
-        {/* Notificación flotante superpuesta (siempre visible sin importar el scroll) */}
         {error && (
           <div className={styles.floatingToast}>
             <MdErrorOutline size={20} style={{ flexShrink: 0 }} />
@@ -297,7 +312,7 @@ export const EntryModal = ({ isOpen, onClose, materiales = [], onSave, onViewSer
 
         <div className={styles.footer}>
           <button className={styles.btnSecondary} onClick={onClose}>Cancelar</button>
-          <button className={styles.btnPrimary} onClick={handleSubmit}>Guardar Entrada</button>
+          <button className={styles.btnPrimary} style={{ background: '#84CC16', color: '#1A2E05', borderColor: '#84CC16' }} onClick={handleSubmit}>Guardar Entrada</button>
         </div>
       </div>
     </div>

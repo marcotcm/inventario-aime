@@ -19,29 +19,18 @@ export const registerInventarioIpc = () => {
       return { ok: false, error: error.message };
     }
   });
-
-  ipcMain.handle('inventario:registrar-entrada', async (_event, datosEntrada) => {
+  ipcMain.handle('inventario:actualizar', async (_event, code, datos) => {
     try {
-      const data = inventarioService.procesarEntrada(datosEntrada);
+      const data = inventarioService.actualizarMaterial(code, datos);
       return { ok: true, data };
     } catch (error) {
       return { ok: false, error: error.message };
     }
   });
-
-  ipcMain.handle('inventario:registrar-salida', async (_event, datosSalida) => {
+  ipcMain.handle('inventario:actualizar-serials', async (_event, code, serials) => {
     try {
-      const data = inventarioService.procesarSalida(datosSalida);
+      const data = inventarioService.actualizarSerialesStock(code, serials);
       return { ok: true, data };
-    } catch (error) {
-      return { ok: false, error: error.message };
-    }
-  });
-
-  ipcMain.handle('inventario:exportar', async () => {
-    try {
-      const res = await inventarioService.exportarCSV();
-      return { ok: true, ...res };
     } catch (error) {
       return { ok: false, error: error.message };
     }

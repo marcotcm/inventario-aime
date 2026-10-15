@@ -7,6 +7,7 @@ export const FilterModal = ({ isOpen, onClose, currentFilters, onApply }) => {
   const [cat, setCat] = useState('Todas');
   const [loc, setLoc] = useState('Todos los Almacenes');
   const [status, setStatus] = useState('Todos');
+  const [marca, setMarca] = useState('');
 
   useEffect(() => {
     if (isOpen) {
@@ -15,6 +16,7 @@ export const FilterModal = ({ isOpen, onClose, currentFilters, onApply }) => {
         setCat(currentFilters.cat || 'Todas');
         setLoc(currentFilters.loc || 'Todos los Almacenes');
         setStatus(currentFilters.status || 'Todos');
+        setMarca(currentFilters.marca || '');
       }
     }
   }, [isOpen, currentFilters]);
@@ -26,16 +28,17 @@ export const FilterModal = ({ isOpen, onClose, currentFilters, onApply }) => {
   if (!render) return null;
 
   const handleClear = () => {
-    const clean = { cat: 'Todas', loc: 'Todos los Almacenes', status: 'Todos' };
+    const clean = { cat: 'Todas', loc: 'Todos los Almacenes', status: 'Todos', marca: '' };
     setCat(clean.cat);
     setLoc(clean.loc);
     setStatus(clean.status);
+    setMarca(clean.marca);
     onApply(clean);
     onClose();
   };
 
   const handleApply = () => {
-    onApply({ cat, loc, status });
+    onApply({ cat, loc, status, marca });
     onClose();
   };
 
@@ -54,6 +57,18 @@ export const FilterModal = ({ isOpen, onClose, currentFilters, onApply }) => {
           <button className={styles.closeBtn} onClick={onClose}><MdClose size={24} /></button>
         </div>
         <div className={styles.body}>
+          
+          <div className={styles.formGroup}>
+            <label>Filtrar por Marca</label>
+            <input 
+              type="text" 
+              className={styles.input} 
+              placeholder="Ej. Cisco, Schneider..." 
+              value={marca} 
+              onChange={(e) => setMarca(e.target.value)} 
+            />
+          </div>
+
           <div className={styles.formGroup}>
             <label>Categoría</label>
             <select className={styles.select} value={cat} onChange={(e) => setCat(e.target.value)}>
@@ -66,8 +81,9 @@ export const FilterModal = ({ isOpen, onClose, currentFilters, onApply }) => {
               <option value="Soldadura">Soldadura</option>
             </select>
           </div>
+
           <div className={styles.formGroup}>
-            <label>Ubicación</label>
+            <label>Ubicación Física</label>
             <select className={styles.select} value={loc} onChange={(e) => setLoc(e.target.value)}>
               <option value="Todos los Almacenes">Todos los Almacenes</option>
               <option value="Almacén A">Almacén A</option>
@@ -75,6 +91,7 @@ export const FilterModal = ({ isOpen, onClose, currentFilters, onApply }) => {
               <option value="Almacén C">Almacén C</option>
             </select>
           </div>
+
           <div className={styles.formGroup}>
             <label>Estado del Stock</label>
             <select className={styles.select} value={status} onChange={(e) => setStatus(e.target.value)}>

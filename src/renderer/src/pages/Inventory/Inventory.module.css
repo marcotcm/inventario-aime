@@ -1,16 +1,17 @@
 .pageTitle {
   font-size: 18px;
   font-weight: 800;
-  color:  #fefeff;;
-  margin-bottom: 15px;
+  color: var(--text-primary);
+  margin-bottom: 20px;
   text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .container {
   background: var(--bg-card);
   border-radius: 12px;
   padding: 24px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.02);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
   border: 1px solid var(--border-color);
   display: flex;
   flex-direction: column;
@@ -19,11 +20,15 @@
 
 .toolbar {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
+  flex-direction: column;
+  gap: 16px;
   margin-bottom: 20px;
+}
+
+.toolbarTop {
+  display: flex;
   gap: 15px;
-  flex-wrap: wrap;
+  align-items: center;
 }
 
 .searchBox {
@@ -34,8 +39,6 @@
   border-radius: 6px;
   padding: 0 12px;
   flex: 1;
-  min-width: 300px;
-  max-width: 450px;
 }
 
 .searchBox input {
@@ -48,18 +51,62 @@
   font-size: 14px;
 }
 
+.deptoFilterWrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--bg-card); /* Ajustado a color oscuro de la tarjeta */
+  border: 1px solid var(--pdvsa-red);
+  border-radius: 30px; 
+  padding: 0 16px;
+  height: 42px;
+  box-shadow: 0 2px 6px rgba(211, 47, 47, 0.1);
+  transition: all 0.2s ease;
+}
+
+.deptoFilterWrapper:hover {
+  box-shadow: 0 4px 12px rgba(211, 47, 47, 0.2);
+}
+
+.deptoLabel {
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--pdvsa-red);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.deptoSelect {
+  background: transparent;
+  border: none;
+  color: var(--text-primary);
+  font-size: 13px;
+  font-weight: 700;
+  outline: none;
+  cursor: pointer;
+  padding: 4px 0;
+}
+
+/* Fuerza a las opciones del select a tomar el color del fondo principal */
+.deptoSelect option {
+  background-color: var(--bg-card);
+  color: var(--text-primary);
+}
+
 .actions { 
   display: flex; 
-  gap: 10px; 
+  gap: 12px; 
   flex-wrap: wrap; 
 }
 
-/* Botones outline corporativos (Rojo PDVSA) */
 .btn {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 9px 16px;
+  padding: 10px 16px;
   border-radius: 6px;
   font-size: 13px;
   font-weight: 600;
@@ -71,15 +118,13 @@
 }
 
 .btn:hover {
-  background-color: rgba(211, 47, 47, 0.05); /* Fondo rojizo muy sutil */
+  background-color: rgba(211, 47, 47, 0.08);
 }
 
-/* Redundancia para asegurar que todos hereden el mismo estilo si usas clases extra */
-.btnPrimary, .btnDark, .btnOutline {
-  background-color: transparent;
-  border: 1px solid var(--pdvsa-red);
-  color: var(--pdvsa-red);
-}
+.btnPrimary { border-color: var(--pdvsa-red); color: var(--pdvsa-red); }
+.btnDark { border-color: var(--pdvsa-red); color: var(--pdvsa-red); }
+.btnOutline { border-color: var(--text-secondary); color: var(--text-primary); }
+.btnOutline:hover { background-color: var(--hover-bg); border-color: var(--text-primary); }
 
 .pagination {
   display: flex;
@@ -88,12 +133,12 @@
   margin-top: 24px;
   font-size: 14px;
   color: var(--text-secondary);
-  font-weight: 500;
+  font-weight: 600;
 }
 
 .pageControls { 
   display: flex; 
-  gap: 6px; 
+  gap: 8px; 
   align-items: center; 
 }
 
@@ -108,18 +153,18 @@
   transition: all 0.2s;
 }
 
-.pageBtn:hover { 
+.pageBtn:hover:not(:disabled) { 
   background: var(--hover-bg); 
   color: var(--text-primary); 
+}
+
+.pageBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .pageBtnActive { 
   background: transparent; 
   color: var(--pdvsa-red); 
   border-color: var(--pdvsa-red); 
-}
-
-.pageDots { 
-  padding: 0 5px; 
-  color: var(--text-secondary); 
 }

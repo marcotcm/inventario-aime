@@ -1,13 +1,17 @@
 export class ProductoModel {
-  constructor({ code, desc, cat, loc, unit, stock = 0, min = 10, serials = [] }) {
+  constructor({ code, desc, marca, modelo, departamento, cat, loc, unit, min = 10, foto = null, stock = 0, status, serials = [] }) {
     this.code = code ? code.trim().toUpperCase() : '';
     this.desc = desc ? desc.trim() : '';
+    this.marca = marca ? marca.trim() : 'N/A';
+    this.modelo = modelo ? modelo.trim() : 'N/A';
+    this.departamento = departamento ? departamento.trim().toUpperCase() : 'AIT';
     this.cat = cat || 'General';
     this.loc = loc || 'Almacén A';
     this.unit = unit || 'UND';
-    this.stock = Number(stock) || 0;
     this.min = Number(min) || 0;
-    this.status = this.stock <= this.min ? 'Crítico' : 'Stock OK';
+    this.foto = foto || null;
+    this.stock = Number(stock) || 0;
+    this.status = status || (this.stock <= this.min ? 'Crítico' : 'Stock OK');
     this.serials = Array.isArray(serials) ? serials : [];
   }
 
