@@ -13,12 +13,17 @@ export interface ReportesAPI {
   exportar: (args: any) => Promise<any>;
 }
 
+export interface DashboardAPI {
+  obtenerResumen: () => Promise<{ ok: boolean; data?: any; error?: string }>;
+}
+
 declare global {
   interface Window {
     electron: ElectronAPI;
     api: {
       inventario: InventarioAPI;
       reportes: ReportesAPI;
+      dashboard: DashboardAPI;
     };
   }
 }

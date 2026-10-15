@@ -1,89 +1,172 @@
-import React from 'react';
+import { useEffect, useState } from 'react';
 import { MainLayout } from '../../layouts/MainLayout/MainLayout';
 import { KpiCard } from '../../components/KpiCard/KpiCard';
 import { DataCard } from '../../components/DataCard/DataCard';
 import styles from './Dashboard.module.css';
-import { PieChart, Pie, Cell, BarChart, Bar, XAxis, Tooltip, ResponsiveContainer } from 'recharts';
-import { MdLandscape, MdArrowUpward, MdArrowDownward, MdAttachMoney } from 'react-icons/md';
+import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
+import { MdLandscape, MdArrowUpward, MdArrowDownward, MdWarningAmber } from 'react-icons/md';
+
+const STATUS_COLORS = {
+  'Stock OK': '#22c55e',
+  Crítico: '#f59e0b',
+  'Sin stock': '#ef4444'
+};
+
+const formatNumber = (value) => new Intl.NumberFormat('es-VE').format(value ?? 0);
+
+const formatDate = (dateTime) => {
+  if (!dateTime) return '—';
+  const date = new Date(dateTime);
+  if (Number.isNaN(date.getTime())) return dateTime;
+  return new Intl.DateTimeFormat('es-VE', {
+    day: '2-digit',
+    month: 'short',
+    hour: '2-digit',
+    minute: '2-digit'
+  }).format(date);
+};
 
 export const Dashboard = () => {
-  const pieData = [
-    { name: 'Stock OK', value: 70, color: '#86efac' },
-    { name: 'Bajo Stock', value: 18, color: '#fcd34d' },
-    { name: 'Crítico', value: 12, color: '#fca5a5' },
-  ];
-  const barData = [
-    { name: 'Tubería 6"', valor: 40 },
-    { name: 'Válvula de Compuerta', valor: 25 },
-    { name: 'Rodamientos SKF', valor: 15 },
-  ];
+  const [summary, setSummary] = useState(null);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    window.api.dashboard
+      .obtenerResumen()
+      .then((response) => {
+        if (!response.ok) throw new Error(response.error || 'No se pudo obtener el resumen');
+        setSummary(response.data);
+      })
+      .catch((loadError) => setError(loadError.message));
+  }, []);
+
+  const inventoryStatus = (summary?.inventoryStatus ?? []).map((item) => ({
+    ...item,
+    color: STATUS_COLORS[item.name] ?? '#94a3b8'
+  }));
+  const topExits = summary?.topExits ?? [];
+  const recentMovements = summary?.recentMovements ?? [];
 
   return (
     <MainLayout>
       <h2 className={styles.dashboardTitle}>Dashboard - PETROBOSCAN</h2>
 
-      <div className={styles.kpiGrid}>
-        <KpiCard title="Total Materiales Únicos" value="1,250" icon={<MdLandscape size={24} color="#8b5cf6" />} />
-        <KpiCard title="Entradas Este Mes" value="155" icon={<MdArrowUpward size={24} color="#16a34a" />} />
-        <KpiCard title="Salidas Este Mes" value="118" icon={<MdArrowDownward size={24} color="#dc2626" />} />
-        <KpiCard title="Valor Estimado" value="$2.1M" icon={<MdAttachMoney size={24} color="#d97706" />} />
-      </div>
-
-      <div className={styles.twoColGrid}>
-        <DataCard title="Estado del Inventario (Visión General)">
-          <div style={{ height: '200px', display: 'flex', alignItems: 'center' }}>
-            <ResponsiveContainer width="60%" height="100%">
-              <PieChart>
-                <Pie data={pieData} innerRadius={0} outerRadius={90} dataKey="value" stroke="none">
-                  {pieData.map((entry, index) => <Cell key={index} fill={entry.color} />)}
-                </Pie>
-                <Tooltip contentStyle={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-color)', color: 'var(--text-primary)' }} />
-              </PieChart>
-            </ResponsiveContainer>
-            <div style={{ fontSize: '13px', fontWeight: '500', display: 'flex', flexDirection: 'column', gap: '8px', color: 'var(--text-primary)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><span style={{ color: '#16a34a', fontSize: '18px' }}>■</span> Stock OK (70%)</div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><span style={{ color: '#d97706', fontSize: '18px' }}>■</span> Bajo Stock (18%)</div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><span style={{ color: '#dc2626', fontSize: '18px' }}>■</span> Crítico (12%)</div>
-            </div>
+      {error ? (
+        <p className={styles.messageError} role="alert">No se pudo cargar el dashboard: {error}</p>
+      ) : !summary ? (
+        <p className={styles.message} role="status">Cargando resumen del inventario...</p>
+      ) : (
+        <>
+          <div className={styles.kpiGrid}>
+            <KpiCard title="Materiales registrados" value={formatNumber(summary.totalMaterials)} icon={<MdLandscape size={24} color="#8b5cf6" />} />
+            <KpiCard title="Unidades ingresadas este mes" value={formatNumber(summary.entriesThisMonth)} icon={<MdArrowUpward size={24} color="#16a34a" />} />
+            <KpiCard title="Unidades egresadas este mes" value={formatNumber(summary.exitsThisMonth)} icon={<MdArrowDownward size={24} color="#dc2626" />} />
+            <KpiCard title="Materiales críticos o agotados" value={formatNumber(inventoryStatus.filter((item) => item.name !== 'Stock OK').reduce((total, item) => total + item.value, 0))} icon={<MdWarningAmber size={24} color="#d97706" />} />
           </div>
-        </DataCard>
 
-        <DataCard title='<span style="color: #dc2626">NEW!</span> Materiales Más Egresados (Último Mes)'>
-          <div style={{ height: '200px' }}>
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={barData} margin={{ top: 20, right: 20, left: -20, bottom: 0 }}>
-                <XAxis dataKey="name" tick={{ fontSize: 12, fill: 'var(--text-secondary)' }} axisLine={false} tickLine={false} />
-                <Tooltip cursor={{fill: 'var(--hover-bg)'}} contentStyle={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-color)', color: 'var(--text-primary)' }} />
-                <Bar dataKey="valor" fill="#2563eb" radius={[4, 4, 0, 0]} label={{ position: 'top', fill: 'var(--text-primary)', fontSize: 12 }} />
-              </BarChart>
-            </ResponsiveContainer>
+          <div className={styles.twoColGrid}>
+            <DataCard title="Estado actual del inventario">
+              {inventoryStatus.length ? (
+                <div className={styles.chartWithLegend}>
+                  <div className={styles.pieChart}>
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie data={inventoryStatus} innerRadius={48} outerRadius={82} dataKey="value" nameKey="name">
+                          {inventoryStatus.map((item) => <Cell key={item.name} fill={item.color} />)}
+                        </Pie>
+                        <Tooltip formatter={(value, name) => [formatNumber(value), name]} />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+                  <div className={styles.legend}>
+                    {inventoryStatus.map((item) => (
+                      <div className={styles.legendItem} key={item.name}>
+                        <span className={styles.legendSwatch} style={{ backgroundColor: item.color }} />
+                        <span>{item.name}</span>
+                        <strong>{formatNumber(item.value)}</strong>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <p className={styles.message}>No hay materiales registrados.</p>
+              )}
+            </DataCard>
+
+            <DataCard title="Materiales con más salidas este mes">
+              {topExits.length ? (
+                <div className={styles.barChart}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={topExits} layout="vertical" margin={{ top: 4, right: 24, left: 12, bottom: 4 }}>
+                      <XAxis type="number" allowDecimals={false} tick={{ fill: 'var(--text-secondary)', fontSize: 11 }} />
+                      <YAxis type="category" dataKey="code" width={86} tick={{ fill: 'var(--text-secondary)', fontSize: 11 }} />
+                      <Tooltip
+                        cursor={{ fill: 'var(--hover-bg)' }}
+                        formatter={(value) => [formatNumber(value), 'Unidades egresadas']}
+                        labelFormatter={(code) => topExits.find((item) => item.code === code)?.desc ?? code}
+                      />
+                      <Bar dataKey="quantity" fill="#2563eb" radius={[0, 4, 4, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              ) : (
+                <p className={styles.message}>No hay salidas registradas este mes.</p>
+              )}
+            </DataCard>
           </div>
-        </DataCard>
-      </div>
 
-      <div className={styles.twoColGrid}>
-        <DataCard title="Movimientos Recientes (Listado)">
-          <table className={styles.dataTable}>
-            <thead><tr><th>ID / Material</th><th>Tipo</th><th>Cantidad</th><th>Fecha</th><th>Responsable</th></tr></thead>
-            <tbody>
-              <tr><td>PM-0015</td><td>Tubería 6" - Entrada</td><td>50</td><td>20-Oct</td><td>J. Pérez</td></tr>
-              <tr><td>PM-0016</td><td>Tubería 6" - Salida</td><td>10</td><td>21-Oct</td><td>J. Pérez</td></tr>
-              <tr><td>PM-0016</td><td>Tubería 6" - Entrada</td><td>50</td><td>21-Oct</td><td>J. Pérez</td></tr>
-            </tbody>
-          </table>
-        </DataCard>
+          <div className={styles.twoColGrid}>
+            <DataCard title="Movimientos recientes">
+              {recentMovements.length ? (
+                <div className={styles.tableWrapper}>
+                  <table className={styles.dataTable}>
+                    <thead>
+                      <tr><th>Materiales</th><th>Tipo</th><th>Cantidad</th><th>Fecha</th><th>Responsable</th></tr>
+                    </thead>
+                    <tbody>
+                      {recentMovements.map((movement) => (
+                        <tr key={movement.id}>
+                          <td title={movement.materials}>{movement.materials}</td>
+                          <td>{movement.type === 'ENTRADA' ? 'Entrada' : 'Salida'}</td>
+                          <td>{formatNumber(movement.quantity)}</td>
+                          <td>{formatDate(movement.dateTime || movement.date)}</td>
+                          <td>{movement.responsible}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <p className={styles.message}>Todavía no hay movimientos registrados.</p>
+              )}
+            </DataCard>
 
-        <DataCard title="Alertas de Stock Crítico">
-          <table className={styles.dataTable}>
-            <thead><tr><th>ID / Material</th><th>Stock Actual</th><th>Stock Mínimo</th></tr></thead>
-            <tbody>
-              <tr className={styles.textRed}><td>PM-0005 Válvula de Compuerta</td><td>30</td><td>35</td></tr>
-              <tr className={styles.textRed}><td>PM-0033 Lubricante ...</td><td>15</td><td>20</td></tr>
-              <tr className={styles.textRed}><td>PM-0034 Lubricante ...</td><td>18</td><td>22</td></tr>
-            </tbody>
-          </table>
-        </DataCard>
-      </div>
+            <DataCard title="Alertas de stock">
+              {summary.lowStockMaterials.length ? (
+                <div className={styles.tableWrapper}>
+                  <table className={styles.dataTable}>
+                    <thead>
+                      <tr><th>Código / Material</th><th>Stock actual</th><th>Stock mínimo</th><th>Estado</th></tr>
+                    </thead>
+                    <tbody>
+                      {summary.lowStockMaterials.map((material) => (
+                        <tr key={material.code}>
+                          <td>{material.code} — {material.desc}</td>
+                          <td>{formatNumber(material.stock)}</td>
+                          <td>{formatNumber(material.min)}</td>
+                          <td className={styles.textRed}>{material.stock === 0 ? 'Sin stock' : 'Crítico'}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <p className={styles.message}>No hay alertas de stock.</p>
+              )}
+            </DataCard>
+          </div>
+        </>
+      )}
     </MainLayout>
   );
 };

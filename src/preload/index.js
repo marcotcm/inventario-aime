@@ -14,6 +14,9 @@ const api = {
   },
   reportes: {
     exportar: (args) => ipcRenderer.invoke('reportes:exportar', args)
+  },
+  dashboard: {
+    obtenerResumen: () => ipcRenderer.invoke('dashboard:obtener-resumen')
   }
 };
 
