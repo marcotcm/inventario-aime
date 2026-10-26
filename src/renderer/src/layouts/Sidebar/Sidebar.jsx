@@ -1,7 +1,16 @@
 import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import styles from './Sidebar.module.css';
-import { MdHome, MdInventory, MdInput, MdOutput, MdPeople, MdAssessment, MdSettings } from 'react-icons/md';
+import { 
+  MdHome, 
+  MdInventory, 
+  MdInput, 
+  MdOutput, 
+  MdPeople, 
+  MdAssessment, 
+  MdSettings,
+  MdListAlt // Ícono para Pedidos
+} from 'react-icons/md';
 
 export const Sidebar = () => {
   const location = useLocation();
@@ -12,7 +21,9 @@ export const Sidebar = () => {
   return (
     <aside className={styles.sidebar}>
       <div className={styles.topLogoArea}>
-        <span style={{color: 'var(--pdvsa-red)', fontWeight: '900', fontSize: '20px'}}>PDVSA</span>
+        <span style={{color: 'var(--pdvsa-red)', fontWeight: '900', fontSize: '20px'}}>
+          PDVSA
+        </span>
       </div>
 
       <nav className={styles.nav}>
@@ -21,7 +32,9 @@ export const Sidebar = () => {
           className={`${styles.navItem} ${isActive('/dashboard') ? styles.navItemActive : ''}`}
         >
           <MdHome className={styles.navIcon} />
-          <div>INICIO <span className={styles.subtitle}>Dashboard</span></div>
+          <div>
+            INICIO <span className={styles.subtitle}>Dashboard</span>
+          </div>
         </button>
         
         <button 
@@ -29,7 +42,9 @@ export const Sidebar = () => {
           className={`${styles.navItem} ${isActive('/inventario') ? styles.navItemActive : ''}`}
         >
           <MdInventory className={styles.navIcon} /> 
-          <div>INVENTARIO DE <span className={styles.subtitle}>MATERIALES</span></div>
+          <div>
+            INVENTARIO DE <span className={styles.subtitle}>MATERIALES</span>
+          </div>
         </button>
 
         <button 
@@ -37,7 +52,9 @@ export const Sidebar = () => {
           className={`${styles.navItem} ${isActive('/entradas') ? styles.navItemActive : ''}`}
         >
           <MdInput className={styles.navIcon} /> 
-          <div>ENTRADAS <span className={styles.subtitle}>Ingresos</span></div>
+          <div>
+            ENTRADAS <span className={styles.subtitle}>Ingresos</span>
+          </div>
         </button>
         
         <button 
@@ -45,7 +62,19 @@ export const Sidebar = () => {
           className={`${styles.navItem} ${isActive('/salidas') ? styles.navItemActive : ''}`}
         >
           <MdOutput className={styles.navIcon} /> 
-          <div>SALIDAS <span className={styles.subtitle}>Egresos</span></div>
+          <div>
+            SALIDAS <span className={styles.subtitle}>Egresos</span>
+          </div>
+        </button>
+
+        <button 
+          onClick={() => navigate('/pedidos')}
+          className={`${styles.navItem} ${isActive('/pedidos') ? styles.navItemActive : ''}`}
+        >
+          <MdListAlt className={styles.navIcon} /> 
+          <div>
+            PEDIDOS <span className={styles.subtitle}>Órdenes Pendientes</span>
+          </div>
         </button>
         
         <button 
@@ -53,7 +82,9 @@ export const Sidebar = () => {
           className={`${styles.navItem} ${isActive('/proveedores') ? styles.navItemActive : ''}`}
         >
           <MdPeople className={styles.navIcon} /> 
-          <div>PROVEEDORES <span className={styles.subtitle}>Directorio</span></div>
+          <div>
+            PROVEEDORES <span className={styles.subtitle}>Directorio</span>
+          </div>
         </button>
 
         <button 
@@ -61,7 +92,9 @@ export const Sidebar = () => {
           className={`${styles.navItem} ${isActive('/reportes') ? styles.navItemActive : ''}`}
         >
           <MdAssessment className={styles.navIcon} /> 
-          <div>REPORTES <span className={styles.subtitle}>Estadísticas</span></div>
+          <div>
+            REPORTES <span className={styles.subtitle}>Estadísticas</span>
+          </div>
         </button>
 
         <button 
@@ -69,12 +102,16 @@ export const Sidebar = () => {
           className={`${styles.navItem} ${isActive('/ajustes') ? styles.navItemActive : ''}`}
         >
           <MdSettings className={styles.navIcon} /> 
-          <div>AJUSTES <span className={styles.subtitle}>Sistema</span></div>
+          <div>
+            AJUSTES <span className={styles.subtitle}>Sistema</span>
+          </div>
         </button>
       </nav>
 
       <div className={styles.bottomLogoArea}>
-        <span style={{color: 'var(--pdvsa-red)', fontWeight: '900', fontSize: '24px'}}>❖ PDVSA</span>
+        <span style={{color: 'var(--pdvsa-red)', fontWeight: '900', fontSize: '24px'}}>
+          ❖ PDVSA
+        </span>
       </div>
     </aside>
   );

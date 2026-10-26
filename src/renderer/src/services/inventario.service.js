@@ -36,8 +36,16 @@ export const inventarioClientService = {
     if (!res.ok) throw new Error(res.error);
     return res;
   },
+
   async actualizarMaterial(code, datos) {
     const res = await window.api.inventario.actualizar(code, datos);
+    if (!res.ok) throw new Error(res.error);
+    return res.data;
+  },
+
+  // ESTA FUNCIÓN FALTABA PARA COMUNICAR LA UI CON EL BACKEND AL EDITAR SERIALES
+  async actualizarSerialesStock(code, serials) {
+    const res = await window.api.inventario.actualizarSerials(code, serials);
     if (!res.ok) throw new Error(res.error);
     return res.data;
   }

@@ -17,6 +17,22 @@ export const MaterialDetailModal = ({ isOpen, onClose, material }) => {
 
   if (!render || !material) return null;
 
+  // Extraemos y agrupamos los seriales por proveedor para la vista de detalles
+  const stockDetails = material.stockDetails || (material.serials || []).map(s => ({
+    serial: s,
+    proveedor_nombre: 'Proveedor No Especificado',
+    estado_material: 'N/A'
+  }));
+
+  const groupedByProvider = stockDetails.reduce((acc, curr) => {
+    const prov = curr.proveedor_nombre || 'Proveedor No Especificado';
+    if (!acc[prov]) {
+      acc[prov] = [];
+    }
+    acc[prov].push(curr);
+    return acc;
+  }, {});
+
   return (
     <div 
       className={`${styles.overlay} ${styles.overlayCenter} ${!isOpen ? styles.overlayExit : ''}`} 
@@ -31,16 +47,32 @@ export const MaterialDetailModal = ({ isOpen, onClose, material }) => {
       >
         <div className={styles.header}>
           <div className={styles.title} style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
-            <MdInfoOutline size={22} color="var(--pdvsa-red)"/> Detalles del Material
+            <MdInfoOutline size={22} color="var(--pdvsa-red)"/> 
+            Detalles del Material
           </div>
-          <button className={styles.closeBtn} onClick={onClose}><MdClose size={24} /></button>
+          <button 
+            className={styles.closeBtn} 
+            onClick={onClose}
+          >
+            <MdClose size={24} />
+          </button>
         </div>
         
         <div className={styles.body} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
           
-          {/* Cabecera con Foto e Información Principal */}
           <div className={styles.dynamicItem} style={{ gridColumn: '1 / -1', margin: 0, borderLeft: '4px solid var(--pdvsa-red)', display: 'flex', gap: '15px', alignItems: 'center' }}>
-            <div style={{ width: '70px', height: '70px', flexShrink: 0, borderRadius: '6px', overflow: 'hidden', background: 'var(--bg-main)', border: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div style={{ 
+              width: '70px', 
+              height: '70px', 
+              flexShrink: 0, 
+              borderRadius: '6px', 
+              overflow: 'hidden', 
+              background: 'var(--bg-main)', 
+              border: '1px solid var(--border-color)', 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'center' 
+            }}>
               {material.foto ? (
                 <img src={material.foto} alt={material.code} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
               ) : (
@@ -48,8 +80,12 @@ export const MaterialDetailModal = ({ isOpen, onClose, material }) => {
               )}
             </div>
             <div>
-              <h3 style={{ margin: '0 0 5px 0', color: 'var(--text-primary)', fontSize: '16px' }}>{material.desc}</h3>
-              <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '13px', fontWeight: 'bold' }}>CÓDIGO: {material.code}</p>
+              <h3 style={{ margin: '0 0 5px 0', color: 'var(--text-primary)', fontSize: '16px' }}>
+                {material.desc}
+              </h3>
+              <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '13px', fontWeight: 'bold' }}>
+                CÓDIGO: {material.code}
+              </p>
             </div>
           </div>
 
@@ -82,7 +118,9 @@ export const MaterialDetailModal = ({ isOpen, onClose, material }) => {
           
           <div className={styles.formGroup}>
             <label>Stock Actual</label>
-            <div className={styles.input} style={{ background: 'var(--bg-main)', fontWeight: 'bold', color: 'var(--pdvsa-red)' }}>{material.stock}</div>
+            <div className={styles.input} style={{ background: 'var(--bg-main)', fontWeight: 'bold', color: 'var(--pdvsa-red)' }}>
+              {material.stock}
+            </div>
           </div>
           <div className={styles.formGroup}>
             <label>Stock Mínimo Permitido</label>
@@ -90,23 +128,48 @@ export const MaterialDetailModal = ({ isOpen, onClose, material }) => {
           </div>
 
           <div className={styles.formGroup} style={{ gridColumn: '1 / -1' }}>
-            <label>Seriales Registrados en Stock ({material.serials?.length || 0})</label>
-            <div className={styles.serialGrid} style={{ maxHeight: '120px', overflowY: 'auto' }}>
-              {(material.serials || []).map((s, i) => (
-                <div key={i} className={styles.serialBadgeItem} style={{fontSize: '11px', padding: '6px'}}>
-                  <MdQrCode2 size={14} color="var(--pdvsa-red)"/> {s}
-                </div>
-              ))}
-              {(!material.serials || material.serials.length === 0) && (
-                <span style={{fontSize:'12px', color:'var(--text-secondary)'}}>No hay seriales registrados en este momento.</span>
-              )}
-            </div>
+            <label>Seriales en Stock Agrupados por Proveedor ({material.stock})</label>
+            
+            {Object.keys(groupedByProvider).length === 0 ? (
+               <div style={{fontSize:'12px', color:'var(--text-secondary)', padding: '10px', background: 'var(--bg-main)', borderRadius: '6px'}}>
+                 No hay seriales registrados en este momento.
+               </div>
+            ) : (
+               <div style={{ maxHeight: '200px', overflowY: 'auto', paddingRight: '5px', background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: '6px', padding: '10px' }}>
+                 {Object.keys(groupedByProvider).map((proveedor, idx) => (
+                   <div key={idx} style={{ marginBottom: '12px' }}>
+                     <div style={{ 
+                       fontSize: '11px', 
+                       fontWeight: '700', 
+                       color: 'var(--pdvsa-red)', 
+                       marginBottom: '6px'
+                     }}>
+                       {proveedor}
+                     </div>
+                     <div className={styles.serialGrid} style={{ marginTop: 0 }}>
+                       {groupedByProvider[proveedor].map((item, i) => (
+                         <div key={i} className={styles.serialBadgeItem} style={{fontSize: '11px', padding: '6px'}}>
+                           <MdQrCode2 size={14} color="var(--text-secondary)"/> 
+                           {item.serial} 
+                           <span style={{color: 'var(--text-secondary)', fontSize: '9px', marginLeft: 'auto'}}>({item.estado_material})</span>
+                         </div>
+                       ))}
+                     </div>
+                   </div>
+                 ))}
+               </div>
+            )}
           </div>
 
         </div>
 
         <div className={styles.footer}>
-          <button className={styles.btnPrimary} onClick={onClose}>Cerrar Detalles</button>
+          <button 
+            className={styles.btnPrimary} 
+            onClick={onClose}
+          >
+            Cerrar Detalles
+          </button>
         </div>
       </div>
     </div>

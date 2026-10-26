@@ -4,14 +4,16 @@ export const salidaService = {
   listarMovimientos: (tipo) => salidaCrud.obtenerMovimientos(tipo),
 
   procesarEntrada: (datosEntrada) => {
-    const { fecha, proveedor, factura, items, notas } = datosEntrada;
-    if (!proveedor || !proveedor.trim()) throw new Error('El nombre del Proveedor es obligatorio.');
+    const { fecha, factura, items, notas } = datosEntrada;
+    
+    const proveedorPrincipal = items && items.length > 0 ? (items[0].proveedor || 'Múltiples Proveedores') : 'No especificado';
+
     if (!factura || !factura.trim()) throw new Error('El Nro. de Referencia/Factura es obligatorio.');
     if (!items || items.length === 0) throw new Error('Debe incluir al menos un material en la entrada.');
 
     return salidaCrud.procesarLoteStock(items, 'ENTRADA', {
       fecha,
-      proveedor: proveedor.trim(),
+      proveedor: proveedorPrincipal.trim(),
       factura: factura.trim(),
       notas: (notas || '').trim()
     });

@@ -18,16 +18,17 @@ export const salidaCrud = {
 
     return rows.map(m => {
       const detalles = db.prepare(`
-        SELECT id, code, qty, serial FROM movimiento_detalles WHERE movimiento_id = ?
+        SELECT id, code, qty, serial, proveedor FROM movimiento_detalles WHERE movimiento_id = ?
       `).all(m.id);
 
       const itemsMap = {};
       detalles.forEach(d => {
-        if (!itemsMap[d.code]) {
-          itemsMap[d.code] = { code: d.code, qty: 0, serials: [] };
+        const key = `${d.code}_${d.proveedor}`;
+        if (!itemsMap[key]) {
+          itemsMap[key] = { code: d.code, qty: 0, serials: [], proveedor: d.proveedor };
         }
-        itemsMap[d.code].qty += d.qty;
-        itemsMap[d.code].serials.push(d.serial);
+        itemsMap[key].qty += d.qty;
+        itemsMap[key].serials.push(d.serial);
       });
 
       return new MovimientoModel({
@@ -46,6 +47,11 @@ export const salidaCrud = {
     }
 
     const transaccion = db.transaction(() => {
+      // 1. Guardar silenciosamente el proveedor principal si aplica, para evitar error de Foreign Key
+      if (datosMovimiento.proveedor && datosMovimiento.proveedor !== 'No especificado') {
+        db.prepare('INSERT OR IGNORE INTO proveedores (nombre, rif, telefono) VALUES (?, ?, ?)').run(datosMovimiento.proveedor.trim(), '', '');
+      }
+
       for (let i = 0; i < items.length; i++) {
         const item = items[i];
         const numFila = i + 1;
@@ -73,19 +79,35 @@ export const salidaCrud = {
         const matExiste = db.prepare('SELECT code FROM materiales WHERE code = ?').get(code);
         if (!matExiste) throw new Error(`Fila #${numFila}: El material con código ${code} no existe.`);
 
-        // LÓGICA CORREGIDA PARA INSERTAR O ELIMINAR EL STOCK
         if (tipo === 'ENTRADA') {
+          const proveedorFila = (item.proveedor || datosMovimiento.proveedor || 'No especificado').trim();
+          const estadoMatFila = item.estadoMaterial || 'NUEVO';
+          
+          // Guardar silenciosamente el proveedor de esta fila si es nuevo
+          if (proveedorFila !== 'No especificado') {
+            db.prepare('INSERT OR IGNORE INTO proveedores (nombre, rif, telefono) VALUES (?, ?, ?)').run(proveedorFila, '', '');
+          }
+
           for (const s of serialesEnviados) {
-            db.prepare('INSERT OR IGNORE INTO material_stock (code, serial, estado) VALUES (?, ?, ?)').run(code, s, 'DISPONIBLE');
+            try {
+              db.prepare(`
+                INSERT INTO material_stock (code, serial, proveedor_nombre, estado_material, estado) 
+                VALUES (?, ?, ?, ?, ?)
+              `).run(code, s, proveedorFila, estadoMatFila, 'DISPONIBLE');
+            } catch (error) {
+              if (error.message.includes('UNIQUE constraint failed')) {
+                throw new Error(`Fila #${numFila} (${code}): El serial "${s}" ya se encuentra registrado en el sistema. Revise los duplicados.`);
+              }
+              throw error;
+            }
           }
         } else if (tipo === 'SALIDA') {
           for (const s of serialesEnviados) {
-            // Buscamos el ID del registro en stock que coincide con el código de material y el serial físico
-            const stockCheck = db.prepare('SELECT id, estado FROM material_stock WHERE code = ? AND upper(serial) = ?').get(code, s.toUpperCase());
+            const proveedorOrigen = item.proveedor_seleccionado || 'No especificado';
+            const stockCheck = db.prepare('SELECT id, estado FROM material_stock WHERE code = ? AND upper(serial) = ? AND proveedor_nombre = ?').get(code, s.toUpperCase(), proveedorOrigen);
             if (!stockCheck || stockCheck.estado !== 'DISPONIBLE') {
-              throw new Error(`Fila #${numFila} (${code}): El serial "${s}" no se encuentra disponible en stock.`);
+              throw new Error(`Fila #${numFila} (${code}): El serial "${s}" del proveedor "${proveedorOrigen}" no se encuentra disponible en stock.`);
             }
-            // Borramos usando el ID único obtenido
             db.prepare('DELETE FROM material_stock WHERE id = ?').run(stockCheck.id);
           }
         }
@@ -112,12 +134,16 @@ export const salidaCrud = {
       );
 
       const insertDetalle = db.prepare(`
-        INSERT INTO movimiento_detalles (movimiento_id, code, qty, serial) VALUES (?, ?, ?, ?)
+        INSERT INTO movimiento_detalles (movimiento_id, code, qty, serial, proveedor) VALUES (?, ?, ?, ?, ?)
       `);
 
       for (const item of items) {
         for (const s of item.serials) {
-          insertDetalle.run(movimientoId, item.code.toUpperCase(), 1, s.trim());
+          const provItem = tipo === 'ENTRADA' 
+                ? (item.proveedor || datosMovimiento.proveedor || 'No especificado').trim()
+                : (item.proveedor_seleccionado || 'No especificado').trim();
+          
+          insertDetalle.run(movimientoId, item.code.toUpperCase(), 1, s.trim(), provItem);
         }
       }
     });

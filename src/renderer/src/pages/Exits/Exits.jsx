@@ -75,6 +75,7 @@ export const Exits = () => {
       const itemsMatch = mov.items.some(it => {
         const matInfo = getMaterialInfo(it.code);
         return it.code.toLowerCase().includes(term) ||
+               (it.proveedor && it.proveedor.toLowerCase().includes(term)) ||
                (it.serials && it.serials.some(s => s.toLowerCase().includes(term))) ||
                matInfo.desc.toLowerCase().includes(term) ||
                (matInfo.marca && matInfo.marca.toLowerCase().includes(term)) ||
@@ -160,11 +161,11 @@ export const Exits = () => {
                       <MdDateRange size={18} /> Fecha: {date}
                       {isExpanded ? (
                         <span className={styles.groupSummary}>
-                          Resumen del día: {group.totalItems} Materiales egresados | Total: {group.totalQty} unidades entregadas.
+                          Resumen del día: {group.totalItems} Lotes Egresados | Total: {group.totalQty} unidades entregadas.
                         </span>
                       ) : (
                         <span className={styles.groupSummaryCollapsed}>
-                          [{group.totalItems} Materiales | {group.totalQty} unidades egresadas]
+                          [{group.totalItems} Lotes | {group.totalQty} unidades egresadas]
                         </span>
                       )}
                     </div>
@@ -180,6 +181,7 @@ export const Exits = () => {
                             <th>CÓDIGO / MARCA</th>
                             <th>DESCRIPCIÓN DEL MATERIAL</th>
                             <th>CANTIDAD</th>
+                            <th>PROVEEDOR ORIGEN</th>
                             <th>TRABAJADOR / APROBADOR</th>
                             <th>SERIALES ENTREGADOS</th>
                             <th>DESTINO / RAZÓN</th>
@@ -199,6 +201,7 @@ export const Exits = () => {
                                   </td>
                                   <td>{matInfo.desc}</td>
                                   <td><span className={styles.pillRed}>-{it.qty} {matInfo.unit}</span></td>
+                                  <td><div style={{ fontWeight: '600', color: 'var(--pdvsa-red)'}}>{it.proveedor}</div></td>
                                   <td>
                                     <div style={{ fontWeight: '600' }}>{trabajador}</div>
                                     <div style={{ fontSize: '10px', color: 'var(--text-secondary)' }}>Aprobó: {mov.aprobadoPor}</div>

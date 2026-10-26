@@ -19,10 +19,28 @@ export const SerialsModal = ({ isOpen, onClose, material }) => {
 
   if (!render || !material) return null;
 
-  const serialsList = material.serials || [];
-  const filteredSerials = serialsList.filter((s) =>
-    s.toLowerCase().includes(search.toLowerCase())
+  // Extraemos los detalles si existen (que traen proveedor y estado), 
+  // si no, simulamos un formato básico para mantener compatibilidad
+  const stockDetails = material.stockDetails || (material.serials || []).map(s => ({
+    serial: s,
+    proveedor_nombre: 'Proveedor No Especificado',
+    estado_material: 'N/A'
+  }));
+
+  const filteredDetails = stockDetails.filter((item) =>
+    item.serial.toLowerCase().includes(search.toLowerCase()) ||
+    item.proveedor_nombre.toLowerCase().includes(search.toLowerCase())
   );
+
+  // Agrupar los seriales filtrados por Proveedor
+  const groupedByProvider = filteredDetails.reduce((acc, curr) => {
+    const prov = curr.proveedor_nombre || 'Proveedor No Especificado';
+    if (!acc[prov]) {
+      acc[prov] = [];
+    }
+    acc[prov].push(curr);
+    return acc;
+  }, {});
 
   return (
     <div 
@@ -43,32 +61,65 @@ export const SerialsModal = ({ isOpen, onClose, material }) => {
               {material.desc} — Stock Total: <strong>{material.stock} {material.unit}</strong>
             </div>
           </div>
-          <button className={styles.closeBtn} onClick={onClose}><MdClose size={24} /></button>
+          <button 
+            className={styles.closeBtn} 
+            onClick={onClose}
+          >
+            <MdClose size={24} />
+          </button>
         </div>
 
         <div className={styles.body}>
-          <div style={{ display: 'flex', alignItems: 'center', background: 'var(--bg-main)', border: '1px solid var(--border-color)', borderRadius: '6px', padding: '0 10px' }}>
+          <div style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            background: 'var(--bg-main)', 
+            border: '1px solid var(--border-color)', 
+            borderRadius: '6px', 
+            padding: '0 10px' 
+          }}>
             <MdSearch size={18} color="var(--text-secondary)" />
             <input 
               type="text" 
               className={styles.input} 
               style={{ border: 'none', background: 'transparent' }}
-              placeholder="Buscar serial específico..." 
+              placeholder="Buscar serial específico o proveedor..." 
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
           </div>
 
-          {filteredSerials.length === 0 ? (
+          {Object.keys(groupedByProvider).length === 0 ? (
             <div style={{ padding: '24px', textAlign: 'center', color: 'var(--text-secondary)', fontSize: '13px' }}>
               No se encontraron seriales registrados para este criterio.
             </div>
           ) : (
-            <div className={styles.serialsListWrapper}>
-              {filteredSerials.map((serial, idx) => (
-                <div key={idx} className={styles.serialBadgeItem}>
-                  <MdQrCode2 size={16} color="var(--pdvsa-red)" />
-                  <span>{serial}</span>
+            <div style={{ maxHeight: '350px', overflowY: 'auto', paddingRight: '5px' }}>
+              {Object.keys(groupedByProvider).map((proveedor, idx) => (
+                <div key={idx} style={{ marginBottom: '16px' }}>
+                  <div style={{ 
+                    fontSize: '12px', 
+                    fontWeight: '700', 
+                    color: 'var(--pdvsa-red)', 
+                    borderBottom: '1px solid var(--border-color)', 
+                    paddingBottom: '4px',
+                    marginBottom: '8px'
+                  }}>
+                    {proveedor}
+                  </div>
+                  <div className={styles.serialsListWrapper}>
+                    {groupedByProvider[proveedor].map((item, sIdx) => (
+                      <div key={sIdx} className={styles.serialBadgeItem} style={{ flexDirection: 'column', alignItems: 'flex-start', gap: '2px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                           <MdQrCode2 size={16} color="var(--text-secondary)" />
+                           <span style={{ fontWeight: '700' }}>{item.serial}</span>
+                        </div>
+                        <span style={{ fontSize: '10px', color: 'var(--text-secondary)', marginLeft: '22px' }}>
+                          Estado: {item.estado_material}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               ))}
             </div>
@@ -76,7 +127,12 @@ export const SerialsModal = ({ isOpen, onClose, material }) => {
         </div>
 
         <div className={styles.footer}>
-          <button className={styles.btnPrimary} onClick={onClose}>Cerrar</button>
+          <button 
+            className={styles.btnPrimary} 
+            onClick={onClose}
+          >
+            Cerrar
+          </button>
         </div>
       </div>
     </div>

@@ -3,7 +3,8 @@ import path from 'path';
 import fs from 'fs';
 import Database from 'better-sqlite3';
 
-const getDbPath = () => path.join(app.getPath('userData'), 'pdvsa_sqlite_db_v2.db');
+// Cambiamos a v4 para forzar la recreación de la base de datos con la nueva estructura relacional y los nuevos datos
+const getDbPath = () => path.join(app.getPath('userData'), 'pdvsa_sqlite_db_v4.db');
 
 let dbInstance = null;
 
@@ -19,14 +20,16 @@ export const getDb = () => {
   const dbExists = fs.existsSync(dbPath);
   dbInstance = new Database(dbPath);
   dbInstance.pragma('journal_mode = WAL');
+  // Es obligatorio activar las foreign keys en SQLite
   dbInstance.pragma('foreign_keys = ON');
 
   if (!dbExists) {
     crearTablasYEvaluarDatos(dbInstance);
   } else {
-    const count = dbInstance.prepare('SELECT COUNT(*) as total FROM materiales').get();
-    if (count.total === 0) {
-      poblarDatosIniciales(dbInstance);
+    // Si por alguna razón ya existe pero falta alguna tabla, evaluamos
+    const count = dbInstance.prepare("SELECT count(*) FROM sqlite_master WHERE type='table' AND name='materiales'").get();
+    if (count['count(*)'] === 0) {
+      crearTablasYEvaluarDatos(dbInstance);
     }
   }
 
@@ -61,9 +64,12 @@ function crearTablasYEvaluarDatos(db) {
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         code TEXT NOT NULL,
         serial TEXT NOT NULL UNIQUE,
+        proveedor_nombre TEXT NOT NULL DEFAULT 'No especificado',
+        estado_material TEXT DEFAULT 'NUEVO',
         estado TEXT DEFAULT 'DISPONIBLE',
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (code) REFERENCES materiales(code) ON DELETE CASCADE
+        FOREIGN KEY (code) REFERENCES materiales(code) ON DELETE CASCADE,
+        FOREIGN KEY (proveedor_nombre) REFERENCES proveedores(nombre) ON UPDATE CASCADE
     );
 
     CREATE TABLE IF NOT EXISTS movimientos (
@@ -85,8 +91,30 @@ function crearTablasYEvaluarDatos(db) {
         code TEXT NOT NULL,
         qty INTEGER NOT NULL,
         serial TEXT NOT NULL,
+        proveedor TEXT DEFAULT 'No especificado',
         FOREIGN KEY (movimiento_id) REFERENCES movimientos(id) ON DELETE CASCADE,
-        FOREIGN KEY (code) REFERENCES materiales(code) ON DELETE CASCADE
+        FOREIGN KEY (code) REFERENCES materiales(code) ON DELETE CASCADE,
+        FOREIGN KEY (proveedor) REFERENCES proveedores(nombre) ON UPDATE CASCADE
+    );
+
+    CREATE TABLE IF NOT EXISTS pedidos (
+        id TEXT PRIMARY KEY,
+        orden_numero TEXT,
+        fecha_creacion DATETIME NOT NULL,
+        proveedor TEXT NOT NULL,
+        estado TEXT DEFAULT 'ACTIVO',
+        notas TEXT,
+        FOREIGN KEY (proveedor) REFERENCES proveedores(nombre) ON UPDATE CASCADE
+    );
+
+    CREATE TABLE IF NOT EXISTS pedido_detalles (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        pedido_id TEXT NOT NULL,
+        code TEXT NOT NULL,
+        qty_solicitada INTEGER NOT NULL,
+        qty_recibida INTEGER DEFAULT 0,
+        estado_material TEXT DEFAULT 'NUEVO',
+        FOREIGN KEY (pedido_id) REFERENCES pedidos(id) ON DELETE CASCADE
     );
   `);
 
@@ -94,162 +122,121 @@ function crearTablasYEvaluarDatos(db) {
 }
 
 function poblarDatosIniciales(db) {
+  // 1. Nuevos Materiales
   const materialesDef = [
-    { code: 'AIT-0001', desc: 'Tarjeta NOE 771', marca: 'Schneider Electric', modelo: 'NOE77101', departamento: 'AIT', cat: 'Tarjetas', loc: 'Almacén A', unit: 'UND', min: 2 },
-    { code: 'AIT-0002', desc: 'Fuente de Poder 24VDC 10A', marca: 'Phoenix Contact', modelo: 'QUINT-PS', departamento: 'AIT', cat: 'Fuentes', loc: 'Almacén A', unit: 'UND', min: 5 },
-    { code: 'AIT-0003', desc: 'Procesador PLC M340', marca: 'Schneider Electric', modelo: 'BMXP342020', departamento: 'AIT', cat: 'Controladores', loc: 'Almacén A', unit: 'UND', min: 1 },
-    { code: 'AIT-0004', desc: 'Módulo Entradas Digitales 32CH', marca: 'Schneider Electric', modelo: 'BMXDDI3202K', departamento: 'AIT', cat: 'Tarjetas', loc: 'Almacén A', unit: 'UND', min: 4 },
-    { code: 'AIT-0005', desc: 'Módulo Salidas Digitales 32CH', marca: 'Schneider Electric', modelo: 'BMXDDO3202K', departamento: 'AIT', cat: 'Tarjetas', loc: 'Almacén A', unit: 'UND', min: 4 },
-    { code: 'AIT-0006', desc: 'Módulo Entradas Analógicas 8CH', marca: 'Schneider Electric', modelo: 'BMXAMI0810', departamento: 'AIT', cat: 'Tarjetas', loc: 'Almacén A', unit: 'UND', min: 2 },
-    { code: 'AIT-0007', desc: 'Módulo Salidas Analógicas 4CH', marca: 'Schneider Electric', modelo: 'BMXAMO0410', departamento: 'AIT', cat: 'Tarjetas', loc: 'Almacén A', unit: 'UND', min: 2 },
-    { code: 'AIT-0008', desc: 'Rack PLC 8 Slots', marca: 'Schneider Electric', modelo: 'BMXXBP0800', departamento: 'AIT', cat: 'Accesorios', loc: 'Almacén A', unit: 'UND', min: 1 },
-    { code: 'AIT-0009', desc: 'Cable Comunicación USB PLC', marca: 'Schneider Electric', modelo: 'BMXXCAUSBH018', departamento: 'AIT', cat: 'Cables', loc: 'Almacén A', unit: 'UND', min: 5 },
-    { code: 'AIT-0010', desc: 'Relé Interfaz 24VDC', marca: 'Finder', modelo: '39.11', departamento: 'AIT', cat: 'Eléctrico', loc: 'Almacén A', unit: 'UND', min: 20 },
-
-    { code: 'SCA-0001', desc: 'Servidor Rack 1U', marca: 'Dell', modelo: 'PowerEdge R440', departamento: 'SCADA', cat: 'Servidores', loc: 'Almacén B', unit: 'UND', min: 1 },
-    { code: 'SCA-0002', desc: 'Workstation Operador', marca: 'HP', modelo: 'Z4 G4', departamento: 'SCADA', cat: 'Equipos de Cómputo', loc: 'Almacén B', unit: 'UND', min: 2 },
-    { code: 'SCA-0003', desc: 'Monitor Industrial 24"', marca: 'Advantech', modelo: 'FPM-7241W', departamento: 'SCADA', cat: 'Pantallas', loc: 'Almacén B', unit: 'UND', min: 2 },
-    { code: 'SCA-0004', desc: 'Licencia SCADA', marca: 'Inductive Automation', modelo: 'Ignition Pro', departamento: 'SCADA', cat: 'Software', loc: 'Virtual', unit: 'UND', min: 1 },
-    { code: 'SCA-0005', desc: 'Switch Industrial 8 Puertos', marca: 'Moxa', modelo: 'EDS-208', departamento: 'SCADA', cat: 'Comunicaciones', loc: 'Almacén B', unit: 'UND', min: 5 },
-    { code: 'SCA-0006', desc: 'Cable UTP Cat 6', marca: 'Belden', modelo: '2412', departamento: 'SCADA', cat: 'Cables', loc: 'Almacén B', unit: 'MTR', min: 100 },
-    { code: 'SCA-0007', desc: 'UPS 3kVA Rackmount', marca: 'APC', modelo: 'SMT3000RM2UC', departamento: 'SCADA', cat: 'Energía', loc: 'Almacén B', unit: 'UND', min: 1 },
-    { code: 'SCA-0008', desc: 'KVM Switch 8 Puertos', marca: 'Tripp Lite', modelo: 'B022-U08', departamento: 'SCADA', cat: 'Accesorios', loc: 'Almacén B', unit: 'UND', min: 1 },
-    { code: 'SCA-0009', desc: 'Disco Duro Servidor 2TB SAS', marca: 'Seagate', modelo: 'Exos 15E900', departamento: 'SCADA', cat: 'Almacenamiento', loc: 'Almacén B', unit: 'UND', min: 3 },
-    { code: 'SCA-0010', desc: 'Transceptor SFP 1000BASE-SX', marca: 'Cisco', modelo: 'GLC-SX-MMD', departamento: 'SCADA', cat: 'Comunicaciones', loc: 'Almacén B', unit: 'UND', min: 10 },
-
-    { code: 'TEL-0001', desc: 'Router Capa 3', marca: 'Cisco', modelo: 'ISR 4331', departamento: 'TELECOM', cat: 'Equipos Red', loc: 'Almacén C', unit: 'UND', min: 1 },
-    { code: 'TEL-0002', desc: 'Switch 24 Puertos PoE', marca: 'Cisco', modelo: 'Catalyst 9200L', departamento: 'TELECOM', cat: 'Equipos Red', loc: 'Almacén C', unit: 'UND', min: 2 },
-    { code: 'TEL-0003', desc: 'Radio Enlace Microondas 5GHz', marca: 'Ubiquiti', modelo: 'airFiber 5XHD', departamento: 'TELECOM', cat: 'Radios', loc: 'Almacén C', unit: 'UND', min: 2 },
-    { code: 'TEL-0004', desc: 'Antena Parabólica 5GHz 30dBi', marca: 'Ubiquiti', modelo: 'AF-5G30-S45', departamento: 'TELECOM', cat: 'Antenas', loc: 'Almacén C', unit: 'UND', min: 2 },
-    { code: 'TEL-0005', desc: 'Cable Coaxial LMR-400', marca: 'Times Microwave', modelo: 'LMR-400', departamento: 'TELECOM', cat: 'Cables', loc: 'Almacén C', unit: 'MTR', min: 50 },
-    { code: 'TEL-0006', desc: 'Conector N Macho', marca: 'Amphenol', modelo: '172102', departamento: 'TELECOM', cat: 'Conexiones', loc: 'Almacén C', unit: 'UND', min: 20 },
-    { code: 'TEL-0007', desc: 'Teléfono IP', marca: 'Cisco', modelo: 'CP-7841', departamento: 'TELECOM', cat: 'Equipos Red', loc: 'Almacén C', unit: 'UND', min: 5 },
-    { code: 'TEL-0008', desc: 'Patch Panel 24 Puertos Cat 6', marca: 'Panduit', modelo: 'CP24BLY', departamento: 'TELECOM', cat: 'Accesorios', loc: 'Almacén C', unit: 'UND', min: 2 },
-    { code: 'TEL-0009', desc: 'Patch Cord Cat 6 1m', marca: 'Panduit', modelo: 'UTPSP1M', departamento: 'TELECOM', cat: 'Cables', loc: 'Almacén C', unit: 'UND', min: 30 },
-    { code: 'TEL-0010', desc: 'Mástil Telescópico 6m', marca: 'Genérico', modelo: 'MT-6M', departamento: 'TELECOM', cat: 'Estructuras', loc: 'Almacén C', unit: 'UND', min: 2 },
+    { code: 'AIT-1001', desc: 'Switch Industrial Administrable 8 Puertos', marca: 'Cisco', modelo: 'IE-3000', departamento: 'AIT', cat: 'Equipos Red', loc: 'Almacén A', unit: 'UND', min: 2 },
+    { code: 'AIT-1002', desc: 'Servidor Rack 2U Dual Intel Xeon', marca: 'Dell', modelo: 'PowerEdge R740', departamento: 'AIT', cat: 'Servidores', loc: 'Almacén A', unit: 'UND', min: 1 },
+    { code: 'MEC-2001', desc: 'Válvula de Bola 4" Acero Inoxidable Clase 300', marca: 'WKM', modelo: 'Ball-4-SS', departamento: 'MECÁNICA', cat: 'Válvulas', loc: 'Patio', unit: 'UND', min: 10 },
+    { code: 'MEC-2002', desc: 'Empacadura Neopreno 6" 150# RF', marca: 'Garlock', modelo: 'Style 22', departamento: 'MECÁNICA', cat: 'Conexiones', loc: 'Almacén B', unit: 'UND', min: 50 },
+    { code: 'OPE-3001', desc: 'Aceite Hidráulico Anti-desgaste ISO 68', marca: 'Mobil', modelo: 'DTE 26', departamento: 'OPERACIONES', cat: 'Fluidos', loc: 'Almacén C', unit: 'LTR', min: 200 },
+    { code: 'OPE-3002', desc: 'Braga de Seguridad Ignífuga con Reflectivo', marca: 'Bulwark', modelo: 'Nomex IIIA', departamento: 'OPERACIONES', cat: 'EPP', loc: 'Almacén B', unit: 'UND', min: 15 }
   ];
 
-  const proveedores = ['TechSupply CA', 'Inversiones SCADA C.A.', 'Telecomunicaciones de Venezuela', 'Distribuidora AIT', 'Global Networks'];
-  const trabajadores = ['Ing. Marco Morales (AIT)', 'Ing. Luis Perez (SCADA)', 'Tec. Juan Gomez (TELECOM)', 'Sup. Maria Fernandez (AIT)', 'Ing. Ana Lopez (TELECOM)'];
-  const aprobadores = ['Gerencia AIT', 'Gerencia SCADA', 'Gerencia TELECOM', 'Supervisor de Turno'];
+  // 2. Nuevos Proveedores
+  const proveedoresDef = [
+    { nombre: 'Corporación Cisco Vzla', rif: 'J-12345678-9', telefono: '0261-5551010' },
+    { nombre: 'Dell Technologies Latam', rif: 'J-98765432-1', telefono: '0261-5552020' },
+    { nombre: 'Ferretería Industrial Zulia', rif: 'J-11223344-5', telefono: '0261-5553030' },
+    { nombre: 'Suministros Globales AIT', rif: 'J-55667788-9', telefono: '0261-5554040' },
+    { nombre: 'Baker Hughes S.A.', rif: 'J-99887766-5', telefono: '0261-5555050' },
+    { nombre: 'Halliburton de Venezuela', rif: 'J-44332211-0', telefono: '0261-5556060' }
+  ];
 
-  const insertProv = db.prepare('INSERT OR IGNORE INTO proveedores (nombre, rif, telefono) VALUES (?, ?, ?)');
-  proveedores.forEach(p => insertProv.run(p, 'J-00000000-0', '0261-0000000'));
+  const transaccion = db.transaction(() => {
+    // Insertar Proveedores
+    const insertProv = db.prepare('INSERT OR IGNORE INTO proveedores (nombre, rif, telefono) VALUES (?, ?, ?)');
+    proveedoresDef.forEach(p => insertProv.run(p.nombre, p.rif, p.telefono));
 
-  const insertMat = db.prepare(`
-    INSERT OR REPLACE INTO materiales (code, desc, marca, modelo, departamento, cat, loc, unit, min, foto)
-    VALUES (@code, @desc, @marca, @modelo, @departamento, @cat, @loc, @unit, @min, @foto)
-  `);
+    // Insertar Materiales
+    const insertMat = db.prepare(`
+      INSERT OR REPLACE INTO materiales (code, desc, marca, modelo, departamento, cat, loc, unit, min, foto)
+      VALUES (@code, @desc, @marca, @modelo, @departamento, @cat, @loc, @unit, @min, @foto)
+    `);
+    materialesDef.forEach(m => insertMat.run({ ...m, foto: null }));
 
-  const poblarTransaccion = db.transaction(() => {
-    for (const m of materialesDef) {
-      insertMat.run({ ...m, foto: null });
-    }
+    // Statements para movimientos y stock
+    const insertMov = db.prepare(`INSERT INTO movimientos (id, tipo, fecha, fecha_hora, proveedor, factura, trabajador, aprobado_por, motivo, notas) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`);
+    const insertDet = db.prepare(`INSERT INTO movimiento_detalles (movimiento_id, code, qty, serial, proveedor) VALUES (?, ?, ?, ?, ?)`);
+    const insertStock = db.prepare(`INSERT INTO material_stock (code, serial, proveedor_nombre, estado_material, estado) VALUES (?, ?, ?, ?, ?)`);
+    const deleteStock = db.prepare(`DELETE FROM material_stock WHERE code = ? AND serial = ?`);
 
-    let inventarioFinal = {}; 
-    materialesDef.forEach(m => { inventarioFinal[m.code] = { stock: 0, serials: [] }; });
-    const generarSerial = (prefix, index) => `${prefix}-${String(index).padStart(4, '0')}`;
+    // 3. GENERAR ENTRADAS (STOCK INICIAL)
     
-    let currentDate = new Date('2026-09-01T08:00:00Z');
-    const END_DATE = new Date('2026-10-14T23:59:59Z');
-    let movIdCounter = 1000;
-    let serialCounter = 1;
+    // Entrada 1: Redes y Servidores
+    let movId = `MOV-8001`;
+    insertMov.run(movId, 'ENTRADA', '2026-10-01', '2026-10-01T08:00:00Z', 'Corporación Cisco Vzla', 'F-10045', null, null, null, 'Actualización Data Center');
+    for(let i=1; i<=6; i++) {
+      insertStock.run('AIT-1001', `SW-CS-00${i}`, 'Corporación Cisco Vzla', 'NUEVO', 'DISPONIBLE');
+      insertDet.run(movId, 'AIT-1001', 1, `SW-CS-00${i}`, 'Corporación Cisco Vzla');
+    }
+    insertStock.run('AIT-1002', `SRV-DELL-01`, 'Dell Technologies Latam', 'NUEVO', 'DISPONIBLE');
+    insertDet.run(movId, 'AIT-1002', 1, `SRV-DELL-01`, 'Dell Technologies Latam');
+    insertStock.run('AIT-1002', `SRV-DELL-02`, 'Dell Technologies Latam', 'NUEVO', 'DISPONIBLE');
+    insertDet.run(movId, 'AIT-1002', 1, `SRV-DELL-02`, 'Dell Technologies Latam');
 
-    const insertMov = db.prepare(`
-      INSERT INTO movimientos (id, tipo, fecha, fecha_hora, proveedor, factura, trabajador, aprobado_por, motivo, notas)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `);
-    const insertDet = db.prepare(`
-      INSERT INTO movimiento_detalles (movimiento_id, code, qty, serial) VALUES (?, ?, ?, ?)
-    `);
-    const insertStock = db.prepare(`
-      INSERT OR IGNORE INTO material_stock (code, serial, estado) VALUES (?, ?, ?)
-    `);
-    const deleteStock = db.prepare(`
-      DELETE FROM material_stock WHERE code = ? AND serial = ?
-    `);
+    // Entrada 2: Válvulas y Empacaduras
+    movId = `MOV-8002`;
+    insertMov.run(movId, 'ENTRADA', '2026-10-05', '2026-10-05T10:30:00Z', 'Ferretería Industrial Zulia', 'F-5582', null, null, null, 'Stock de Patio Central');
+    for(let i=1; i<=15; i++) {
+      insertStock.run('MEC-2001', `VB-4-WKM-${i}`, 'Ferretería Industrial Zulia', 'NUEVO', 'DISPONIBLE');
+      insertDet.run(movId, 'MEC-2001', 1, `VB-4-WKM-${i}`, 'Ferretería Industrial Zulia');
+    }
+    // Ingreso masivo simulado con lote único para la empacadura (70 unidades)
+    insertStock.run('MEC-2002', 'LOTE-EMP-01', 'Ferretería Industrial Zulia', 'NUEVO', 'DISPONIBLE');
+    insertDet.run(movId, 'MEC-2002', 70, 'LOTE-EMP-01', 'Ferretería Industrial Zulia');
 
-    // Entradas Masivas Iniciales
-    for (let i = 0; i < 30; i++) {
-      const matIndex = Math.floor(Math.random() * materialesDef.length);
-      const material = materialesDef[matIndex];
-      const qty = material.unit === 'MTR' ? Math.floor(Math.random() * 100) + 50 : Math.floor(Math.random() * 10) + 2; 
-      
-      const serials = [];
-      if (material.unit === 'UND') {
-          for(let j=0; j<qty; j++) serials.push(generarSerial(material.code, serialCounter++));
-      } else {
-          serials.push(`LOTE-${material.code}-${serialCounter++}`);
-      }
-
-      const movId = `MOV-${movIdCounter++}`;
-      const fechaStr = currentDate.toISOString().split('T')[0];
-      const fechaHoraStr = currentDate.toISOString();
-
-      insertMov.run(movId, 'ENTRADA', fechaStr, fechaHoraStr, proveedores[Math.floor(Math.random() * proveedores.length)], `FAC-${Math.floor(Math.random() * 9000) + 1000}`, null, null, null, 'Ingreso inicial / Reposición');
-
-      for(const s of serials) {
-        insertStock.run(material.code, s, 'DISPONIBLE');
-        insertDet.run(movId, material.code, 1, s);
-      }
-
-      inventarioFinal[material.code].stock += qty;
-      inventarioFinal[material.code].serials.push(...serials);
-      currentDate = new Date(currentDate.getTime() + (8 * 60 * 60 * 1000)); 
+    // Entrada 3: Aceites y EPP
+    movId = `MOV-8003`;
+    insertMov.run(movId, 'ENTRADA', '2026-10-10', '2026-10-10T14:15:00Z', 'Suministros Globales AIT', 'F-8899', null, null, null, 'Insumos de Operaciones Mensuales');
+    insertStock.run('OPE-3001', 'LOTE-ACEITE-01', 'Suministros Globales AIT', 'NUEVO', 'DISPONIBLE');
+    insertDet.run(movId, 'OPE-3001', 350, 'LOTE-ACEITE-01', 'Suministros Globales AIT');
+    
+    for(let i=1; i<=30; i++) {
+      insertStock.run('OPE-3002', `BRG-NMX-${i}`, 'Suministros Globales AIT', 'NUEVO', 'DISPONIBLE');
+      insertDet.run(movId, 'OPE-3002', 1, `BRG-NMX-${i}`, 'Suministros Globales AIT');
     }
 
-    // Movimientos Intercalados
-    for (let i = 0; i < 40; i++) {
-      const esEntrada = Math.random() > 0.6;
-      const matIndex = Math.floor(Math.random() * materialesDef.length);
-      const material = materialesDef[matIndex];
-      const movId = `MOV-${movIdCounter++}`;
-      const fechaStr = currentDate.toISOString().split('T')[0];
-      const fechaHoraStr = currentDate.toISOString();
-
-      if (esEntrada) {
-          const qty = material.unit === 'MTR' ? 50 : Math.floor(Math.random() * 5) + 1; 
-          const serials = [];
-          if (material.unit === 'UND') {
-              for(let j=0; j<qty; j++) serials.push(generarSerial(material.code, serialCounter++));
-          } else {
-              serials.push(`LOTE-${material.code}-${serialCounter++}`);
-          }
-
-          insertMov.run(movId, 'ENTRADA', fechaStr, fechaHoraStr, proveedores[Math.floor(Math.random() * proveedores.length)], `FAC-${Math.floor(Math.random() * 9000) + 1000}`, null, null, null, 'Compras menores');
-
-          for(const s of serials) {
-            insertStock.run(material.code, s, 'DISPONIBLE');
-            insertDet.run(movId, material.code, 1, s);
-          }
-          inventarioFinal[material.code].stock += qty;
-          inventarioFinal[material.code].serials.push(...serials);
-
-      } else { 
-          const stockActual = inventarioFinal[material.code].stock;
-          if (stockActual > 0) {
-              const maxSacar = material.unit === 'MTR' ? Math.min(stockActual, 20) : Math.min(stockActual, 3);
-              const qty = Math.floor(Math.random() * maxSacar) + 1;
-              let serialsToExtract = [];
-              if (material.unit === 'UND') {
-                   serialsToExtract = inventarioFinal[material.code].serials.splice(0, qty); 
-              } else {
-                   if(inventarioFinal[material.code].serials.length > 0) serialsToExtract.push(inventarioFinal[material.code].serials[0]);
-              }
-              inventarioFinal[material.code].stock -= qty;
-
-              insertMov.run(movId, 'SALIDA', fechaStr, fechaHoraStr, null, null, trabajadores[Math.floor(Math.random() * trabajadores.length)], aprobadores[Math.floor(Math.random() * aprobadores.length)], 'Mantenimiento en Planta', null);
-
-              for(const s of serialsToExtract) {
-                deleteStock.run(material.code, s);
-                insertDet.run(movId, material.code, 1, s);
-              }
-          }
-      }
-      currentDate = new Date(currentDate.getTime() + (24 * 60 * 60 * 1000)); 
-      if(currentDate > END_DATE) break;
+    // 4. GENERAR SALIDAS
+    
+    // Salida 1: Retiro de Servidor y Switches
+    movId = `MOV-9001`;
+    insertMov.run(movId, 'SALIDA', '2026-10-12', '2026-10-12T09:00:00Z', null, null, 'Ing. Roberto Silva (Data Center B)', 'Gerencia AIT', 'Migración de Servidores', null);
+    // Retira 1 Servidor
+    insertDet.run(movId, 'AIT-1002', 1, 'SRV-DELL-01', 'Dell Technologies Latam');
+    deleteStock.run('AIT-1002', 'SRV-DELL-01');
+    // Retira 2 Switches
+    for(let i=1; i<=2; i++) {
+      insertDet.run(movId, 'AIT-1001', 1, `SW-CS-00${i}`, 'Corporación Cisco Vzla');
+      deleteStock.run('AIT-1001', `SW-CS-00${i}`);
     }
+
+    // Salida 2: Mantenimiento Mecánico
+    movId = `MOV-9002`;
+    insertMov.run(movId, 'SALIDA', '2026-10-18', '2026-10-18T16:45:00Z', null, null, 'Sup. Héctor Gómez (Planta de Gas)', 'Jefe de Operaciones', 'Reemplazo preventivo en línea 4', null);
+    // Retira 4 válvulas
+    for(let i=1; i<=4; i++) {
+      insertDet.run(movId, 'MEC-2001', 1, `VB-4-WKM-${i}`, 'Ferretería Industrial Zulia');
+      deleteStock.run('MEC-2001', `VB-4-WKM-${i}`);
+    }
+    // Retira Bragas
+    for(let i=1; i<=8; i++) {
+      insertDet.run(movId, 'OPE-3002', 1, `BRG-NMX-${i}`, 'Suministros Globales AIT');
+      deleteStock.run('OPE-3002', `BRG-NMX-${i}`);
+    }
+
+    // 5. GENERAR PEDIDOS Y ÓRDENES DE COMPRA
+    const insertPedido = db.prepare(`INSERT INTO pedidos (id, orden_numero, fecha_creacion, proveedor, estado, notas) VALUES (?, ?, ?, ?, ?, ?)`);
+    const insertPedidoDet = db.prepare(`INSERT INTO pedido_detalles (pedido_id, code, qty_solicitada, qty_recibida, estado_material) VALUES (?, ?, ?, ?, ?)`);
+
+    // Pedido 1: Baker Hughes (Completado)
+    insertPedido.run('ORD-8001', 'OC-505011', '2026-09-15T10:00:00Z', 'Baker Hughes S.A.', 'COMPLETADO', 'Recepción total en Patio.');
+    insertPedidoDet.run('ORD-8001', 'MEC-2001', 10, 10, 'NUEVO');
+
+    // Pedido 2: Halliburton (Activo - Faltante)
+    insertPedido.run('ORD-8002', 'OC-505022', '2026-10-20T08:00:00Z', 'Halliburton de Venezuela', 'ACTIVO', 'Entrega programada por partes.');
+    insertPedidoDet.run('ORD-8002', 'OPE-3001', 500, 200, 'NUEVO');
+    insertPedidoDet.run('ORD-8002', 'MEC-2002', 100, 0, 'NUEVO');
   });
 
-  poblarTransaccion();
+  transaccion();
 }

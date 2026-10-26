@@ -3,7 +3,13 @@ import styles from './Modals.module.css';
 import { MdClose, MdErrorOutline, MdCloudUpload, MdQrCode2 } from 'react-icons/md';
 import { EditSerialsModal } from './EditSerialsModal';
 
-export const EditMaterialModal = ({ isOpen, onClose, material, onSave, onSaveSerials }) => {
+export const EditMaterialModal = ({ 
+  isOpen, 
+  onClose, 
+  material, 
+  onSave, 
+  onSaveSerials 
+}) => {
   const [render, setRender] = useState(isOpen);
   const [isSerialsModalOpen, setIsSerialsModalOpen] = useState(false);
   const [formData, setFormData] = useState({
@@ -49,7 +55,9 @@ export const EditMaterialModal = ({ isOpen, onClose, material, onSave, onSaveSer
   }, [error]);
 
   const handleAnimationEnd = () => {
-    if (!isOpen) setRender(false);
+    if (!isOpen) {
+      setRender(false);
+    }
   };
 
   if (!render || !material) return null;
@@ -74,7 +82,9 @@ export const EditMaterialModal = ({ isOpen, onClose, material, onSave, onSaveSer
     e.stopPropagation();
     setPreviewImage(null);
     setFormData({ ...formData, foto: null });
-    if (fileInputRef.current) fileInputRef.current.value = '';
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
   };
 
   const handleSubmit = async () => {
@@ -106,11 +116,17 @@ export const EditMaterialModal = ({ isOpen, onClose, material, onSave, onSaveSer
         >
           <div className={styles.header}>
             <div className={styles.title}>Editar Material ({material.code})</div>
-            <button className={styles.closeBtn} onClick={onClose}><MdClose size={24} /></button>
+            <button 
+              className={styles.closeBtn} 
+              onClick={onClose}
+            >
+              <MdClose size={24} />
+            </button>
           </div>
 
           <div className={styles.body} style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '20px' }}>
             
+            {/* Columna Izquierda: Datos del Material */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
               
               <div style={{ display: 'flex', gap: '10px' }}>
@@ -124,6 +140,7 @@ export const EditMaterialModal = ({ isOpen, onClose, material, onSave, onSaveSer
                     style={{ opacity: 0.7, cursor: 'not-allowed' }}
                   />
                 </div>
+                
                 <div className={styles.formGroup} style={{ flex: 1 }}>
                   <label>Departamento</label>
                   <select 
@@ -158,6 +175,7 @@ export const EditMaterialModal = ({ isOpen, onClose, material, onSave, onSaveSer
                     onChange={(e) => setFormData({ ...formData, marca: e.target.value })}
                   />
                 </div>
+                
                 <div className={styles.formGroup} style={{ flex: 1 }}>
                   <label>Modelo</label>
                   <input 
@@ -185,6 +203,7 @@ export const EditMaterialModal = ({ isOpen, onClose, material, onSave, onSaveSer
 
             </div>
 
+            {/* Columna Derecha: Foto, Categoría y Configuración de Stock */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
               
               <div className={styles.formGroup}>
@@ -207,10 +226,24 @@ export const EditMaterialModal = ({ isOpen, onClose, material, onSave, onSaveSer
                 >
                   {previewImage ? (
                     <>
-                      <img src={previewImage} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                      <img 
+                        src={previewImage} 
+                        alt="Preview" 
+                        style={{ width: '100%', height: '100%', objectFit: 'contain' }} 
+                      />
                       <button 
                         onClick={removeImage} 
-                        style={{ position: 'absolute', top: '5px', right: '5px', background: 'rgba(0,0,0,0.6)', color: 'white', border: 'none', borderRadius: '50%', padding: '4px', cursor: 'pointer' }}
+                        style={{ 
+                          position: 'absolute', 
+                          top: '5px', 
+                          right: '5px', 
+                          background: 'rgba(0,0,0,0.6)', 
+                          color: 'white', 
+                          border: 'none', 
+                          borderRadius: '50%', 
+                          padding: '4px', 
+                          cursor: 'pointer' 
+                        }}
                       >
                         <MdClose size={14}/>
                       </button>
@@ -278,6 +311,7 @@ export const EditMaterialModal = ({ isOpen, onClose, material, onSave, onSaveSer
                     <option value="Virtual">Virtual</option>
                   </select>
                 </div>
+                
                 <div className={styles.formGroup} style={{ flex: 1 }}>
                   <label>Unidad</label>
                   <select 
@@ -312,20 +346,33 @@ export const EditMaterialModal = ({ isOpen, onClose, material, onSave, onSaveSer
             <div className={styles.floatingToast}>
               <MdErrorOutline size={20} style={{ flexShrink: 0 }} />
               <span>{error}</span>
-              <button type="button" className={styles.toastCloseBtn} onClick={() => setError('')}>
+              <button 
+                type="button" 
+                className={styles.toastCloseBtn} 
+                onClick={() => setError('')}
+              >
                 <MdClose size={18} />
               </button>
             </div>
           )}
 
           <div className={styles.footer}>
-            <button className={styles.btnSecondary} onClick={onClose}>Cancelar</button>
-            <button className={styles.btnPrimary} onClick={handleSubmit}>Guardar Cambios</button>
+            <button 
+              className={styles.btnSecondary} 
+              onClick={onClose}
+            >
+              Cancelar
+            </button>
+            <button 
+              className={styles.btnPrimary} 
+              onClick={handleSubmit}
+            >
+              Guardar Cambios
+            </button>
           </div>
         </div>
       </div>
 
-      {/* Sub-modal para editar los seriales individuales */}
       <EditSerialsModal 
         isOpen={isSerialsModalOpen} 
         onClose={() => setIsSerialsModalOpen(false)} 

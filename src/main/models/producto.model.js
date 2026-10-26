@@ -1,5 +1,5 @@
 export class ProductoModel {
-  constructor({ code, desc, marca, modelo, departamento, cat, loc, unit, min = 10, foto = null, stock = 0, status, serials = [] }) {
+  constructor({ code, desc, marca, modelo, departamento, cat, loc, unit, min = 10, foto = null, stock = 0, status, serials = [], stockDetails = [] }) {
     this.code = code ? code.trim().toUpperCase() : '';
     this.desc = desc ? desc.trim() : '';
     this.marca = marca ? marca.trim() : 'N/A';
@@ -13,6 +13,9 @@ export class ProductoModel {
     this.stock = Number(stock) || 0;
     this.status = status || (this.stock <= this.min ? 'Crítico' : 'Stock OK');
     this.serials = Array.isArray(serials) ? serials : [];
+    
+    // ESTA LÍNEA FALTABA: Pasa los detalles completos de stock (proveedor y estado) a las vistas
+    this.stockDetails = Array.isArray(stockDetails) ? stockDetails : [];
   }
 
   static calcularEstado(stock, min) {

@@ -19,6 +19,7 @@ export const registerInventarioIpc = () => {
       return { ok: false, error: error.message };
     }
   });
+
   ipcMain.handle('inventario:actualizar', async (_event, code, datos) => {
     try {
       const data = inventarioService.actualizarMaterial(code, datos);
@@ -27,6 +28,7 @@ export const registerInventarioIpc = () => {
       return { ok: false, error: error.message };
     }
   });
+
   ipcMain.handle('inventario:actualizar-serials', async (_event, code, serials) => {
     try {
       const data = inventarioService.actualizarSerialesStock(code, serials);

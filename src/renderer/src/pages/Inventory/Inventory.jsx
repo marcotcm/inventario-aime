@@ -9,6 +9,7 @@ import { SerialsModal } from '../../components/Modals/SerialsModal';
 import { MaterialDetailModal } from '../../components/Modals/MaterialDetailModal';
 import { FilterModal } from '../../components/Modals/FilterModal';
 import { inventarioClientService } from '../../services/inventario.service';
+import { pedidosClientService } from '../../services/pedidos.client.service';
 import { useReportExport } from '../../hooks/useReportExport';
 import styles from './Inventory.module.css';
 import { MdSearch, MdAdd, MdArrowUpward, MdArrowDownward, MdFilterList, MdTableView, MdPictureAsPdf } from 'react-icons/md';
@@ -71,8 +72,13 @@ export const Inventory = () => {
   const handleDeptoChange = (val) => { setDeptoFilter(val); setCurrentPage(1); };
   const handleApplyFilters = (filtros) => { setAdvancedFilters(filtros); setCurrentPage(1); };
 
-  const handleCrearMaterial = async (nuevoMat) => { 
-    await inventarioClientService.crearNuevoMaterial(nuevoMat); 
+  const handleCrearMaterial = async (data) => { 
+    // 1. Registra solo el catálogo del material sin insertar el stock en inventario
+    await inventarioClientService.crearNuevoMaterial(data.materialDef);
+    // 2. Si definió un pedido/lote inicial, lo inyectamos vía motor de Pedidos para que unifique
+    if (data.pedidoDef) {
+       await pedidosClientService.crearPedido(data.pedidoDef);
+    }
     await cargarInventario(); 
   };
 
@@ -81,10 +87,18 @@ export const Inventory = () => {
     await cargarInventario();
   };
 
+  const handleActualizarSerials = async (code, serials) => {
+    await inventarioClientService.actualizarSerialesStock(code, serials);
+    await cargarInventario();
+  };
+
   const handleRegistrarEntrada = async (datos) => { 
-    await inventarioClientService.registrarEntrada(datos); 
+    // Redirigimos la entrada al motor de Pedidos, el cual procesará automáticamente 
+    // el stock de lo recibido o generará el pedido pendiente.
+    await pedidosClientService.crearPedido(datos); 
     await cargarInventario(); 
   };
+  
   const handleRegistrarSalida = async (datos) => { 
     await inventarioClientService.registrarSalida(datos); 
     await cargarInventario(); 
@@ -224,7 +238,13 @@ export const Inventory = () => {
       </div>
 
       <NewMaterialModal isOpen={isNewMatOpen} onClose={() => setIsNewMatOpen(false)} onSave={handleCrearMaterial} />
-      <EditMaterialModal isOpen={!!editModalMaterial} onClose={() => setEditModalMaterial(null)} material={editModalMaterial} onSave={handleActualizarMaterial} />
+      <EditMaterialModal 
+        isOpen={!!editModalMaterial} 
+        onClose={() => setEditModalMaterial(null)} 
+        material={editModalMaterial} 
+        onSave={handleActualizarMaterial} 
+        onSaveSerials={handleActualizarSerials} 
+      />
       <EntryModal isOpen={isEntryOpen} onClose={() => setIsEntryOpen(false)} materiales={allMaterials} onSave={handleRegistrarEntrada} onViewSerials={(mat) => setSerialModalMaterial(mat)} />
       <ExitModal isOpen={isExitOpen} onClose={() => setIsExitOpen(false)} materiales={allMaterials} onSave={handleRegistrarSalida} onViewSerials={(mat) => setSerialModalMaterial(mat)} />
       <FilterModal isOpen={isFilterOpen} onClose={() => setIsFilterOpen(false)} currentFilters={advancedFilters} onApply={handleApplyFilters} />

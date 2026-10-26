@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { MainLayout } from '../../layouts/MainLayout/MainLayout';
 import { EntryModal } from '../../components/Modals/EntryModal';
 import { inventarioClientService } from '../../services/inventario.service';
+import { pedidosClientService } from '../../services/pedidos.client.service';
 import { useReportExport } from '../../hooks/useReportExport';
 import styles from './Entries.module.css';
 import { MdDateRange, MdKeyboardArrowDown, MdKeyboardArrowUp, MdAdd, MdTableView, MdPictureAsPdf } from 'react-icons/md';
@@ -39,7 +40,8 @@ export const Entries = () => {
   useEffect(() => { cargarDatos(); }, [cargarDatos]);
 
   const handleNuevaEntrada = async (datos) => {
-    await inventarioClientService.registrarEntrada(datos);
+    // Usamos la inyección directa al motor de pedidos para el correcto empalme
+    await pedidosClientService.crearPedido(datos);
     await cargarDatos();
   };
 
@@ -61,13 +63,13 @@ export const Entries = () => {
     if (searchTerm.trim() !== '') {
       const term = searchTerm.toLowerCase();
       
-      const movMatches = mov.proveedor.toLowerCase().includes(term) || 
-                         mov.factura.toLowerCase().includes(term) ||
+      const movMatches = (mov.factura && mov.factura.toLowerCase().includes(term)) ||
                          mov.id.toLowerCase().includes(term);
 
       const itemsMatch = mov.items.some(it => {
         const matInfo = getMaterialInfo(it.code);
         return it.code.toLowerCase().includes(term) ||
+               (it.proveedor && it.proveedor.toLowerCase().includes(term)) ||
                (it.serials && it.serials.some(s => s.toLowerCase().includes(term))) ||
                matInfo.desc.toLowerCase().includes(term) ||
                (matInfo.marca && matInfo.marca.toLowerCase().includes(term)) ||
@@ -151,11 +153,11 @@ export const Entries = () => {
                       <MdDateRange size={18} /> Fecha: {date}
                       {isExpanded ? (
                         <span className={styles.groupSummary}>
-                          Resumen del día: {group.totalItems} Materiales ingresados | Total: {group.totalQty} unidades recibidas.
+                          Resumen del día: {group.totalItems} Lotes Ingresados | Total: {group.totalQty} unidades recibidas.
                         </span>
                       ) : (
                         <span className={styles.groupSummaryCollapsed}>
-                          [{group.totalItems} Materiales | {group.totalQty} unidades]
+                          [{group.totalItems} Lotes | {group.totalQty} unidades]
                         </span>
                       )}
                     </div>
@@ -189,7 +191,7 @@ export const Entries = () => {
                                   </td>
                                   <td>{matInfo.desc}</td>
                                   <td><span className={styles.pillGreen}>+{it.qty} {matInfo.unit}</span></td>
-                                  <td>{mov.proveedor}</td>
+                                  <td><div style={{ fontWeight: '600', color: 'var(--text-primary)'}}>{it.proveedor}</div></td>
                                   <td style={{ fontSize: '11px', color: 'var(--text-secondary)', maxWidth: '150px' }}>{it.serials?.join(', ')}</td>
                                   <td>{mov.factura}</td>
                                 </tr>
