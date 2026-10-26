@@ -1,3 +1,4 @@
+// src/main/services/inventario.service.js
 import { productoCrud } from '../crud/producto.crud';
 
 export const inventarioService = {
@@ -17,7 +18,8 @@ export const inventarioService = {
       productos = productos.filter(
         (p) =>
           p.code.toLowerCase().includes(term) ||
-          p.desc.toLowerCase().includes(term) ||
+          p.nombre.toLowerCase().includes(term) ||
+          (p.descripcion && p.descripcion.toLowerCase().includes(term)) ||
           (p.marca && p.marca.toLowerCase().includes(term))
       );
     }
@@ -55,14 +57,14 @@ export const inventarioService = {
   },
 
   crearMaterial: (datos) => {
-    if (!datos.code || !datos.code.trim() || !datos.desc || !datos.desc.trim()) {
-      throw new Error('El Código y la Descripción del material son obligatorios.');
+    if (!datos.code || !datos.code.trim() || !datos.nombre || !datos.nombre.trim()) {
+      throw new Error('El Código y el Nombre del material son obligatorios.');
     }
     return productoCrud.crear(datos);
   },
   actualizarMaterial: (code, datos) => {
-    if (!code || !datos.desc || !datos.desc.trim()) {
-      throw new Error('La descripción del material es obligatoria.');
+    if (!code || !datos.nombre || !datos.nombre.trim()) {
+      throw new Error('El nombre del material es obligatorio.');
     }
     return productoCrud.actualizar(code, datos);
   },

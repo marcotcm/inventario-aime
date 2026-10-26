@@ -1,3 +1,4 @@
+// src/renderer/src/components/Modals/ReceiveModal.jsx
 import React, { useState, useEffect } from 'react';
 import styles from './Modals.module.css';
 import { MdClose, MdErrorOutline } from 'react-icons/md';
@@ -6,6 +7,8 @@ export const ReceiveModal = ({ isOpen, onClose, fila, onSave }) => {
   const [render, setRender] = useState(isOpen);
   const [nuevaCantidad, setNuevaCantidad] = useState(1);
   const [seriales, setSeriales] = useState(['']);
+  const [receptor, setReceptor] = useState('');
+  const [fechaRecepcion, setFechaRecepcion] = useState('');
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -14,6 +17,8 @@ export const ReceiveModal = ({ isOpen, onClose, fila, onSave }) => {
       setError('');
       setNuevaCantidad(1);
       setSeriales(['']);
+      setReceptor('');
+      setFechaRecepcion(new Date().toISOString().split('T')[0]);
     }
   }, [isOpen, fila]);
 
@@ -29,7 +34,6 @@ export const ReceiveModal = ({ isOpen, onClose, fila, onSave }) => {
 
   if (!render || !fila) return null;
 
-  // Calculamos el faltante basado en el total global ya recibido de ese código
   const faltante = fila.qty_solicitada - (fila.totalRecibidoGlobalDelCodigo ?? fila.qty_recibida);
 
   const handleQtyChange = (val) => {
@@ -66,6 +70,16 @@ export const ReceiveModal = ({ isOpen, onClose, fila, onSave }) => {
       setError('Debe ingresar una cantidad válida mayor a 0.');
       return;
     }
+    
+    if (!receptor.trim()) {
+      setError('Debe indicar quién recibe el material.');
+      return;
+    }
+    
+    if (!fechaRecepcion) {
+      setError('Debe seleccionar la fecha de recepción.');
+      return;
+    }
 
     const limpios = seriales.map(s => s.trim());
     
@@ -86,7 +100,9 @@ export const ReceiveModal = ({ isOpen, onClose, fila, onSave }) => {
         pedidoId: fila.pedido_id,
         code: fila.code,
         cantidadRecibida: nuevaCantidad,
-        seriales: limpios
+        seriales: limpios,
+        receptor: receptor.trim(),
+        fechaRecepcion
       });
       onClose();
     } catch (err) {
@@ -120,7 +136,7 @@ export const ReceiveModal = ({ isOpen, onClose, fila, onSave }) => {
 
         <div className={styles.body}>
           <div style={{ background: 'rgba(211, 47, 47, 0.05)', padding: '12px', borderRadius: '6px', border: '1px solid rgba(211, 47, 47, 0.2)', fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '15px' }}>
-            Material: <strong>{fila.material_desc}</strong> (Marca: {fila.material_marca} / Modelo: {fila.material_modelo})
+            Material: <strong>{fila.material_nombre}</strong> (Marca: {fila.material_marca} / Modelo: {fila.material_modelo})
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px', background: 'var(--bg-main)', padding: '15px', borderRadius: '8px', border: '1px solid var(--border-color)', marginBottom: '15px' }}>
@@ -153,6 +169,28 @@ export const ReceiveModal = ({ isOpen, onClose, fila, onSave }) => {
               * Quedarán {faltante - (nuevaCantidad || 0)} unidades pendientes de esta partida.
             </div>
           )}
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '15px' }}>
+             <div className={styles.formGroup}>
+               <label>Fecha de Recepción</label>
+               <input 
+                 type="date" 
+                 className={styles.input} 
+                 value={fechaRecepcion} 
+                 onChange={(e) => setFechaRecepcion(e.target.value)} 
+               />
+             </div>
+             <div className={styles.formGroup}>
+               <label>Receptor (Quién recibe)</label>
+               <input 
+                 type="text" 
+                 className={styles.input} 
+                 placeholder="Ej. Almacenista José" 
+                 value={receptor} 
+                 onChange={(e) => setReceptor(e.target.value)} 
+               />
+             </div>
+          </div>
 
           <div className={styles.formGroup}>
             <label>Seriales Físicos Entrantes ({nuevaCantidad || 0})</label>

@@ -1,3 +1,4 @@
+// src/renderer/src/components/Modals/MaterialDetailModal.jsx
 import React, { useState, useEffect } from 'react';
 import styles from './Modals.module.css';
 import { MdClose, MdInfoOutline, MdQrCode2, MdImageNotSupported } from 'react-icons/md';
@@ -17,7 +18,6 @@ export const MaterialDetailModal = ({ isOpen, onClose, material }) => {
 
   if (!render || !material) return null;
 
-  // Extraemos y agrupamos los seriales por proveedor para la vista de detalles
   const stockDetails = material.stockDetails || (material.serials || []).map(s => ({
     serial: s,
     proveedor_nombre: 'Proveedor No Especificado',
@@ -79,10 +79,13 @@ export const MaterialDetailModal = ({ isOpen, onClose, material }) => {
                 <MdImageNotSupported size={28} color="var(--text-secondary)" />
               )}
             </div>
-            <div>
+            <div style={{ flex: 1 }}>
               <h3 style={{ margin: '0 0 5px 0', color: 'var(--text-primary)', fontSize: '16px' }}>
-                {material.desc}
+                {material.nombre}
               </h3>
+              <p style={{ margin: '0 0 5px 0', color: 'var(--text-secondary)', fontSize: '12px' }}>
+                {material.descripcion || 'Sin descripción detallada'}
+              </p>
               <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '13px', fontWeight: 'bold' }}>
                 CÓDIGO: {material.code}
               </p>
@@ -109,7 +112,7 @@ export const MaterialDetailModal = ({ isOpen, onClose, material }) => {
           
           <div className={styles.formGroup}>
             <label>Ubicación Física</label>
-            <div className={styles.input} style={{ background: 'var(--bg-main)' }}>{material.loc}</div>
+            <div className={styles.input} style={{ background: 'var(--bg-main)' }}>{material.loc || 'No asignada'}</div>
           </div>
           <div className={styles.formGroup}>
             <label>Unidad de Medida</label>
@@ -125,6 +128,13 @@ export const MaterialDetailModal = ({ isOpen, onClose, material }) => {
           <div className={styles.formGroup}>
             <label>Stock Mínimo Permitido</label>
             <div className={styles.input} style={{ background: 'var(--bg-main)' }}>{material.min}</div>
+          </div>
+
+          <div className={styles.formGroup} style={{ gridColumn: '1 / -1' }}>
+            <label>Existencia Histórica (Total Ingresado en el tiempo)</label>
+            <div className={styles.input} style={{ background: 'var(--bg-main)', fontWeight: 'bold', color: '#16a34a' }}>
+              {material.existencia_historica} {material.unit} ingresados históricamente
+            </div>
           </div>
 
           <div className={styles.formGroup} style={{ gridColumn: '1 / -1' }}>

@@ -1,3 +1,4 @@
+// src/renderer/src/pages/Exits/Exits.jsx
 import React, { useState, useEffect, useCallback } from 'react';
 import { MainLayout } from '../../layouts/MainLayout/MainLayout';
 import { ExitModal } from '../../components/Modals/ExitModal';
@@ -45,7 +46,7 @@ export const Exits = () => {
 
   const toggleDate = (date) => setExpandedDates(prev => ({ ...prev, [date]: !prev[date] }));
   const formatTime = (isoString) => new Date(isoString).toLocaleTimeString('es-VE', { hour: '2-digit', minute: '2-digit' });
-  const getMaterialInfo = (code) => inventario.find(m => m.code === code) || { desc: 'Desconocido', unit: 'UND', marca: '', modelo: '' };
+  const getMaterialInfo = (code) => inventario.find(m => m.code === code) || { nombre: 'Desconocido', descripcion: '', unit: 'UND', marca: '', modelo: '' };
 
   const extractTrabajadorArea = (rawString) => {
     const match = rawString.match(/(.*?)\((.*?)\)/);
@@ -77,9 +78,8 @@ export const Exits = () => {
         return it.code.toLowerCase().includes(term) ||
                (it.proveedor && it.proveedor.toLowerCase().includes(term)) ||
                (it.serials && it.serials.some(s => s.toLowerCase().includes(term))) ||
-               matInfo.desc.toLowerCase().includes(term) ||
-               (matInfo.marca && matInfo.marca.toLowerCase().includes(term)) ||
-               (matInfo.modelo && matInfo.modelo.toLowerCase().includes(term));
+               matInfo.nombre.toLowerCase().includes(term) ||
+               (matInfo.marca && matInfo.marca.toLowerCase().includes(term));
       });
 
       matchText = movMatches || itemsMatch;
@@ -179,7 +179,7 @@ export const Exits = () => {
                           <tr>
                             <th>HORA</th>
                             <th>CÓDIGO / MARCA</th>
-                            <th>DESCRIPCIÓN DEL MATERIAL</th>
+                            <th>NOMBRE / DESCRIPCIÓN</th>
                             <th>CANTIDAD</th>
                             <th>PROVEEDOR ORIGEN</th>
                             <th>TRABAJADOR / APROBADOR</th>
@@ -199,7 +199,10 @@ export const Exits = () => {
                                     <div style={{ fontWeight: '700' }}>{it.code}</div>
                                     <div style={{ fontSize: '10px', color: 'var(--text-secondary)' }}>{matInfo.marca}</div>
                                   </td>
-                                  <td>{matInfo.desc}</td>
+                                  <td>
+                                    <div style={{ fontWeight: '600' }}>{matInfo.nombre}</div>
+                                    <div style={{ fontSize: '10px', color: 'var(--text-secondary)' }}>{matInfo.descripcion}</div>
+                                  </td>
                                   <td><span className={styles.pillRed}>-{it.qty} {matInfo.unit}</span></td>
                                   <td><div style={{ fontWeight: '600', color: 'var(--pdvsa-red)'}}>{it.proveedor}</div></td>
                                   <td>

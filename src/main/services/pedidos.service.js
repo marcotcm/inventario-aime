@@ -1,3 +1,4 @@
+// src/main/services/pedidos.service.js
 import { pedidosCrud } from '../crud/pedidos.crud';
 
 export const pedidosService = {
@@ -14,7 +15,7 @@ export const pedidosService = {
   },
 
   recibirParcial: (datosRecepcion) => {
-    const { pedidoId, code, cantidadRecibida, seriales } = datosRecepcion;
+    const { pedidoId, code, cantidadRecibida, seriales, receptor, fechaRecepcion } = datosRecepcion;
     
     if (!pedidoId || !code) throw new Error('Faltan datos de referencia del pedido.');
     if (!cantidadRecibida || cantidadRecibida <= 0) throw new Error('La cantidad a recibir debe ser mayor a 0.');
@@ -23,6 +24,6 @@ export const pedidosService = {
     const serialesLimpios = seriales.map(s => s.trim());
     if (serialesLimpios.some(s => s === '')) throw new Error('No puede dejar seriales en blanco.');
     
-    return pedidosCrud.actualizarRecepcionParcial(pedidoId, code.toUpperCase(), cantidadRecibida, serialesLimpios);
+    return pedidosCrud.actualizarRecepcionParcial(pedidoId, code.toUpperCase(), cantidadRecibida, serialesLimpios, receptor, fechaRecepcion);
   }
 };

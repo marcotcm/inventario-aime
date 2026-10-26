@@ -1,3 +1,4 @@
+// src/main/crud/dashboard.crud.js
 import { getDb } from '../database/connection';
 
 export const dashboardCrud = {
@@ -41,7 +42,7 @@ export const dashboardCrud = {
       const lowStockMaterials = db.prepare(`
         SELECT
           mat.code,
-          mat.desc,
+          mat.nombre as desc,
           COALESCE(stock.cantidad, 0) AS stock,
           COALESCE(mat.min, 0) AS min
         FROM materiales mat
@@ -58,7 +59,7 @@ export const dashboardCrud = {
       const topExits = db.prepare(`
         SELECT
           mat.code,
-          mat.desc,
+          mat.nombre as desc,
           SUM(det.qty) AS quantity
         FROM movimiento_detalles det
         JOIN movimientos mov ON mov.id = det.movimiento_id
@@ -66,7 +67,7 @@ export const dashboardCrud = {
         WHERE mov.tipo = 'SALIDA'
           AND mov.fecha >= ?
           AND mov.fecha < ?
-        GROUP BY mat.code, mat.desc
+        GROUP BY mat.code, mat.nombre
         ORDER BY quantity DESC, mat.code COLLATE NOCASE
         LIMIT 5
       `).all(desde, hasta);
@@ -81,7 +82,7 @@ export const dashboardCrud = {
           COALESCE(mov.factura, mov.motivo, '') AS reference,
           COALESCE(SUM(det.qty), 0) AS quantity,
           COALESCE(
-            GROUP_CONCAT(mat.code || ' - ' || mat.desc, ', '),
+            GROUP_CONCAT(mat.code || ' - ' || mat.nombre, ', '),
             'Sin detalle'
           ) AS materials
         FROM movimientos mov

@@ -1,3 +1,4 @@
+// src/renderer/src/pages/Inventory/Inventory.jsx
 import React, { useState, useEffect, useCallback } from 'react';
 import { MainLayout } from '../../layouts/MainLayout/MainLayout';
 import { InventoryTable } from '../../components/InventoryTable/InventoryTable';
@@ -28,7 +29,7 @@ export const Inventory = () => {
   
   const [searchTerm, setSearchTerm] = useState('');
   const [deptoFilter, setDeptoFilter] = useState('TODOS');
-  const [advancedFilters, setAdvancedFilters] = useState({ cat: 'Todas', loc: 'Todos los Almacenes', status: 'Todos', marca: '' });
+  const [advancedFilters, setAdvancedFilters] = useState({ cat: 'Todas', loc: '', status: 'Todos', marca: '' });
   
   const [currentPage, setCurrentPage] = useState(1);
   const [inputPage, setInputPage] = useState(1);
@@ -73,9 +74,7 @@ export const Inventory = () => {
   const handleApplyFilters = (filtros) => { setAdvancedFilters(filtros); setCurrentPage(1); };
 
   const handleCrearMaterial = async (data) => { 
-    // 1. Registra solo el catálogo del material sin insertar el stock en inventario
     await inventarioClientService.crearNuevoMaterial(data.materialDef);
-    // 2. Si definió un pedido/lote inicial, lo inyectamos vía motor de Pedidos para que unifique
     if (data.pedidoDef) {
        await pedidosClientService.crearPedido(data.pedidoDef);
     }
@@ -93,8 +92,6 @@ export const Inventory = () => {
   };
 
   const handleRegistrarEntrada = async (datos) => { 
-    // Redirigimos la entrada al motor de Pedidos, el cual procesará automáticamente 
-    // el stock de lo recibido o generará el pedido pendiente.
     await pedidosClientService.crearPedido(datos); 
     await cargarInventario(); 
   };
@@ -161,6 +158,8 @@ export const Inventory = () => {
                  <option value="AIT">AIT</option>
                  <option value="SCADA">SCADA</option>
                  <option value="TELECOM">TELECOM</option>
+                 <option value="MECÁNICA">MECÁNICA</option>
+                 <option value="OPERACIONES">OPERACIONES</option>
                  <option value="NINGUNO">Ninguno (Ocultar Todo)</option>
                </select>
             </div>

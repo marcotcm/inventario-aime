@@ -1,3 +1,4 @@
+// src/renderer/src/components/Modals/EntryModal.jsx
 import React, { useState, useEffect, useRef } from 'react';
 import styles from './Modals.module.css';
 import { MdClose, MdQrCode2, MdErrorOutline, MdAdd, MdBusiness } from 'react-icons/md';
@@ -10,11 +11,12 @@ export const EntryModal = ({
   onViewSerials 
 }) => {
   const [render, setRender] = useState(isOpen);
-  const [modo, setModo] = useState('ENTRADA'); // 'ENTRADA' | 'PEDIDO'
+  const [modo, setModo] = useState('ENTRADA'); 
   const [fecha, setFecha] = useState('');
   const [ordenNumero, setOrdenNumero] = useState('');
   const [factura, setFactura] = useState('');
   const [notas, setNotas] = useState('');
+  const [receptor, setReceptor] = useState('');
   const [items, setItems] = useState([
     { 
       code: '', 
@@ -66,6 +68,7 @@ export const EntryModal = ({
       setOrdenNumero('');
       setFactura('');
       setNotas('');
+      setReceptor('');
       setActiveDropdownIndex(null);
       
       const defaultCode = materiales.length > 0 ? materiales[0].code : '';
@@ -195,6 +198,7 @@ export const EntryModal = ({
   const validarFormulario = () => {
     if (!fecha) return 'Debe seleccionar la fecha.';
     if (modo === 'ENTRADA' && !factura.trim()) return 'El Nro. de Referencia/Factura es obligatorio para entradas.';
+    if (modo === 'ENTRADA' && !receptor.trim()) return 'Debe indicar el Receptor (quién recibe el material).';
     
     const todosLosSeriales = [];
 
@@ -240,6 +244,7 @@ export const EntryModal = ({
         fecha, 
         ordenNumero, 
         factura: factura || 'N/A', 
+        receptor,
         items, 
         notas 
       });
@@ -324,15 +329,28 @@ export const EntryModal = ({
             </div>
           </div>
 
-          <div className={styles.formGroup}>
-            <label>Nro. Referencia/Factura {modo === 'PEDIDO' && '(Opcional)'}</label>
-            <input 
-              type="text" 
-              className={styles.input} 
-              placeholder="Ej. F-00928" 
-              value={factura} 
-              onChange={(e) => setFactura(e.target.value)} 
-            />
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
+            <div className={styles.formGroup}>
+              <label>Nro. Referencia/Factura {modo === 'PEDIDO' && '(Opcional)'}</label>
+              <input 
+                type="text" 
+                className={styles.input} 
+                placeholder="Ej. F-00928" 
+                value={factura} 
+                onChange={(e) => setFactura(e.target.value)} 
+              />
+            </div>
+            
+            <div className={styles.formGroup}>
+              <label>Receptor (Quién recibe)</label>
+              <input 
+                type="text" 
+                className={styles.input} 
+                placeholder="Ej. Almacenista José" 
+                value={receptor} 
+                onChange={(e) => setReceptor(e.target.value)} 
+              />
+            </div>
           </div>
 
           <div className={styles.separator}></div>
@@ -379,7 +397,7 @@ export const EntryModal = ({
                     <option value="">-- Seleccione Material --</option>
                     {materiales.map((m) => (
                       <option key={m.code} value={m.code}>
-                        {m.code} - {m.desc}
+                        {m.code} - {m.nombre}
                       </option>
                     ))}
                   </select>

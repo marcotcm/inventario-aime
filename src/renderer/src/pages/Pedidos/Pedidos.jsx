@@ -1,16 +1,16 @@
+// src/renderer/src/pages/Pedidos/Pedidos.jsx
 import React, { useState, useEffect, useCallback } from 'react';
 import { MainLayout } from '../../layouts/MainLayout/MainLayout';
 import { ReceiveModal } from '../../components/Modals/ReceiveModal';
 import { pedidosClientService } from '../../services/pedidos.client.service';
 import styles from './Pedidos.module.css';
-import { MdRefresh, MdAddBox, MdDoneAll, MdTimer, MdFilterList } from 'react-icons/md';
+import { MdRefresh, MdAddBox, MdDoneAll, MdTimer } from 'react-icons/md';
 
 export const Pedidos = () => {
   const [pedidos, setPedidos] = useState([]);
   const [cargando, setCargando] = useState(true);
   const [filtroEstado, setFiltroEstado] = useState('TODOS');
   
-  // Modal de Recepción
   const [isReceiveModalOpen, setIsReceiveModalOpen] = useState(false);
   const [filaSeleccionada, setFilaSeleccionada] = useState(null);
 
@@ -30,13 +30,11 @@ export const Pedidos = () => {
     cargarPedidos();
   }, [cargarPedidos]);
 
-  // AGRUPACIÓN Y CÁLCULO HISTÓRICO
   const agrupados = {};
   pedidos.forEach((pedido) => {
     const numOrden = pedido.orden_numero || 'SIN-ORDEN';
     if (!agrupados[numOrden]) agrupados[numOrden] = [];
     
-    // Agrupar los detalles por código para calcular los totales acumulados históricos
     const detallesPorCodigo = {};
     pedido.detalles.forEach((det) => {
       if (!detallesPorCodigo[det.code]) detallesPorCodigo[det.code] = [];
@@ -47,13 +45,11 @@ export const Pedidos = () => {
       const detallesCode = detallesPorCodigo[code];
       let acumulado = 0;
       
-      // Como el backend los ordena por ID ASC, podemos sumar el historial progresivamente
       detallesCode.forEach(det => {
         acumulado += det.qty_recibida;
         det.total_acumulado = acumulado;
       });
 
-      // Invertimos para que la fila más reciente (la última transacción) quede arriba
       detallesCode.reverse();
 
       detallesCode.forEach((det, idx) => {
@@ -71,7 +67,6 @@ export const Pedidos = () => {
     });
   });
 
-  // FILTRADO: Evaluar el estado global de la Orden Agrupada
   const gruposFiltrados = Object.entries(agrupados).filter(([numOrden, items]) => {
     let totalSolicitadaOrden = 0;
     let totalRecibidaOrden = 0;
@@ -90,7 +85,6 @@ export const Pedidos = () => {
     return true;
   });
 
-  // APLANAMIENTO FINAL: Generar la estructura de la tabla fusionando el RowSpan
   const filasPlanas = [];
   gruposFiltrados.forEach(([numOrden, items]) => {
     items.forEach((item, idx) => {
@@ -168,30 +162,38 @@ export const Pedidos = () => {
                 <tr>
                   <th>ITEM</th>
                   <th>#ORDEN</th>
+                  <th>FECHA PEDIDO</th>
                   <th>PROVEEDOR</th>
-                  <th>DESCRIPCIÓN</th>
+                  <th>MATERIAL / NOMBRE</th>
                   <th>MARCA</th>
-                  <th>MODELO</th>
                   <th>CANT. SOLIC.</th>
                   <th>CANT. RECIBIDA</th>
                   <th>TOTAL RECIBIDO</th>
+                  <th>FECHA REC.</th>
+                  <th>RECEPTOR</th>
                   <th>ESTADO</th>
                   <th>ACCIONES</th>
                 </tr>
               </thead>
               <tbody>
-                {filasPlanas.map((fila, index) => {
+                {filasPlanas.map((fila) => {
                   const estaCompletoDelTodo = fila.totalRecibidoGlobalDelCodigo >= fila.qty_solicitada;
                   const esHistorial = !fila.esElMasRecienteDelCodigo;
                   const keyUnica = `${fila.pedido_id}-${fila.code}-${fila.id}`;
 
                   return (
-                    <tr key={keyUnica} style={{ opacity: esHistorial ? 0.8 : 1 }}>
+                    <tr key={keyUnica} style={{ opacity: esHistorial ? 0.75 : 1, backgroundColor: esHistorial ? 'var(--bg-main)' : 'transparent' }}>
                       <td style={{ textAlign: 'center' }}>{fila.itemIndex}</td>
                       
                       {fila.esPrimero && (
                         <td rowSpan={fila.rowSpan} style={{ fontWeight: '700', verticalAlign: 'middle', borderRight: '1px solid var(--border-color)', backgroundColor: 'var(--bg-main)' }}>
                           {fila.ordenNumero}
+                        </td>
+                      )}
+                      
+                      {fila.esPrimero && (
+                        <td rowSpan={fila.rowSpan} style={{ verticalAlign: 'middle', borderRight: '1px solid var(--border-color)', backgroundColor: 'var(--bg-main)', color: 'var(--text-secondary)' }}>
+                          {new Date(fila.fechaCreacion).toLocaleDateString()}
                         </td>
                       )}
 
@@ -201,26 +203,31 @@ export const Pedidos = () => {
                         </td>
                       )}
                       
-                      <td style={{ maxWidth: '300px' }}>
+                      <td style={{ maxWidth: '200px' }}>
                         <div style={{ fontWeight: '600' }}>{fila.code}</div>
-                        <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>{fila.material_desc}</div>
+                        <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>{fila.material_nombre}</div>
                       </td>
                       <td>{fila.material_marca}</td>
-                      <td>{fila.material_modelo}</td>
                       
                       <td style={{ textAlign: 'center', fontWeight: 'bold' }}>{fila.qty_solicitada} {fila.unit}</td>
-                      <td style={{ textAlign: 'center' }}>{fila.qty_recibida} {fila.unit}</td>
+                      <td style={{ textAlign: 'center' }}>{fila.qty_recibida > 0 ? `+${fila.qty_recibida}` : 0} {fila.unit}</td>
                       
                       <td 
                         style={{ 
                           textAlign: 'center', 
                           fontWeight: '800', 
                           fontSize: '14px',
-                          backgroundColor: estaCompletoDelTodo ? '#22c55e' : '#facc15',
-                          color: estaCompletoDelTodo ? '#ffffff' : '#422006'
+                          color: estaCompletoDelTodo ? '#22c55e' : '#f59e0b'
                         }}
                       >
-                        {fila.total_acumulado},00
+                        {fila.total_acumulado}
+                      </td>
+
+                      <td style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
+                        {fila.fecha_recepcion ? new Date(fila.fecha_recepcion).toLocaleDateString() : 'Pendiente'}
+                      </td>
+                      <td style={{ fontSize: '11px', maxWidth: '120px' }}>
+                        {fila.receptor || '---'}
                       </td>
                       
                       <td style={{ textAlign: 'center' }}>

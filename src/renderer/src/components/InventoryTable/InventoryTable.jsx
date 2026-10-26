@@ -1,3 +1,4 @@
+// src/renderer/src/components/InventoryTable/InventoryTable.jsx
 import React, { useState, useEffect } from 'react';
 import styles from './InventoryTable.module.css';
 import { MdArrowDropDown, MdMoreVert, MdQrCode2, MdInfo, MdEdit, MdImageNotSupported } from 'react-icons/md';
@@ -24,11 +25,12 @@ export const InventoryTable = ({ data, onViewSerials, onViewDetails, onEdit }) =
             <tr>
               <th style={{ textAlign: 'center', width: '60px' }}>FOTO</th>
               <th>CÓDIGO <MdArrowDropDown size={14} style={{verticalAlign: 'middle'}}/></th>
+              <th>NOMBRE / DESCRIPCIÓN</th>
               <th>MARCA</th>
-              <th>DESCRIPCIÓN</th>
               <th>DEPARTAMENTO</th>
               <th>CATEGORÍA</th>
-              <th>STOCK</th>
+              <th>STOCK ACTUAL</th>
+              <th>HISTÓRICO</th>
               <th>ESTADO</th>
               <th style={{ textAlign: 'center', width: '60px' }}>ACCIONES</th>
             </tr>
@@ -50,11 +52,17 @@ export const InventoryTable = ({ data, onViewSerials, onViewDetails, onEdit }) =
                   )}
                 </td>
                 <td style={{ fontWeight: '600', color: 'var(--text-primary)' }}>{row.code}</td>
+                <td>
+                  <div style={{ fontWeight: '700' }}>{row.nombre}</div>
+                  <div style={{ fontSize: '10px', color: 'var(--text-secondary)', maxWidth: '250px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {row.descripcion}
+                  </div>
+                </td>
                 <td style={{ fontWeight: '600', color: 'var(--text-secondary)' }}>{row.marca}</td>
-                <td>{row.desc}</td>
                 <td style={{ fontWeight: '600', color: 'var(--text-secondary)' }}>{row.departamento}</td>
                 <td>{row.cat}</td>
-                <td style={{ fontWeight: '800', fontSize: '14px' }}>{row.stock} {row.unit}</td>
+                <td style={{ fontWeight: '800', fontSize: '14px', color: 'var(--pdvsa-red)' }}>{row.stock} {row.unit}</td>
+                <td style={{ fontWeight: '700', color: '#16a34a' }}>{row.existencia_historica}</td>
                 <td>
                   <span className={`${styles.badge} ${row.status === 'Stock OK' ? styles.badgeOk : styles.badgeCritical}`}>
                     {row.status}

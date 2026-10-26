@@ -1,3 +1,4 @@
+// src/renderer/src/pages/Entries/Entries.jsx
 import React, { useState, useEffect, useCallback } from 'react';
 import { MainLayout } from '../../layouts/MainLayout/MainLayout';
 import { EntryModal } from '../../components/Modals/EntryModal';
@@ -40,14 +41,13 @@ export const Entries = () => {
   useEffect(() => { cargarDatos(); }, [cargarDatos]);
 
   const handleNuevaEntrada = async (datos) => {
-    // Usamos la inyección directa al motor de pedidos para el correcto empalme
     await pedidosClientService.crearPedido(datos);
     await cargarDatos();
   };
 
   const toggleDate = (date) => setExpandedDates(prev => ({ ...prev, [date]: !prev[date] }));
   const formatTime = (isoString) => new Date(isoString).toLocaleTimeString('es-VE', { hour: '2-digit', minute: '2-digit' });
-  const getMaterialInfo = (code) => inventario.find(m => m.code === code) || { desc: 'Desconocido', unit: 'UND', marca: '', modelo: '' };
+  const getMaterialInfo = (code) => inventario.find(m => m.code === code) || { nombre: 'Desconocido', descripcion: '', unit: 'UND', marca: '', modelo: '' };
 
   const filteredMovimientos = movimientos.filter(mov => {
     let matchDate = true;
@@ -64,6 +64,7 @@ export const Entries = () => {
       const term = searchTerm.toLowerCase();
       
       const movMatches = (mov.factura && mov.factura.toLowerCase().includes(term)) ||
+                         (mov.trabajador && mov.trabajador.toLowerCase().includes(term)) ||
                          mov.id.toLowerCase().includes(term);
 
       const itemsMatch = mov.items.some(it => {
@@ -71,9 +72,8 @@ export const Entries = () => {
         return it.code.toLowerCase().includes(term) ||
                (it.proveedor && it.proveedor.toLowerCase().includes(term)) ||
                (it.serials && it.serials.some(s => s.toLowerCase().includes(term))) ||
-               matInfo.desc.toLowerCase().includes(term) ||
-               (matInfo.marca && matInfo.marca.toLowerCase().includes(term)) ||
-               (matInfo.modelo && matInfo.modelo.toLowerCase().includes(term));
+               matInfo.nombre.toLowerCase().includes(term) ||
+               (matInfo.marca && matInfo.marca.toLowerCase().includes(term));
       });
 
       matchText = movMatches || itemsMatch;
@@ -120,7 +120,7 @@ export const Entries = () => {
               type="text" 
               className={styles.filterInput}
               style={{ width: '350px' }}
-              placeholder="Buscar prov, marca, serial, cód..." 
+              placeholder="Buscar prov, rec, marca, serial, cód..." 
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
@@ -171,9 +171,9 @@ export const Entries = () => {
                           <tr>
                             <th>HORA</th>
                             <th>CÓDIGO / MARCA</th>
-                            <th>DESCRIPCIÓN DEL MATERIAL</th>
+                            <th>NOMBRE / DESCRIPCIÓN</th>
                             <th>CANTIDAD</th>
-                            <th>PROVEEDOR</th>
+                            <th>PROVEEDOR / RECEPTOR</th>
                             <th>SERIALES</th>
                             <th>GUÍA/FACTURA</th>
                           </tr>
@@ -189,9 +189,15 @@ export const Entries = () => {
                                     <div style={{ fontWeight: '700' }}>{it.code}</div>
                                     <div style={{ fontSize: '10px', color: 'var(--text-secondary)' }}>{matInfo.marca}</div>
                                   </td>
-                                  <td>{matInfo.desc}</td>
+                                  <td>
+                                    <div style={{ fontWeight: '600' }}>{matInfo.nombre}</div>
+                                    <div style={{ fontSize: '10px', color: 'var(--text-secondary)' }}>{matInfo.descripcion}</div>
+                                  </td>
                                   <td><span className={styles.pillGreen}>+{it.qty} {matInfo.unit}</span></td>
-                                  <td><div style={{ fontWeight: '600', color: 'var(--text-primary)'}}>{it.proveedor}</div></td>
+                                  <td>
+                                    <div style={{ fontWeight: '600', color: 'var(--text-primary)'}}>{it.proveedor}</div>
+                                    <div style={{ fontSize: '10px', color: 'var(--text-secondary)' }}>Receptor: {mov.trabajador || 'N/A'}</div>
+                                  </td>
                                   <td style={{ fontSize: '11px', color: 'var(--text-secondary)', maxWidth: '150px' }}>{it.serials?.join(', ')}</td>
                                   <td>{mov.factura}</td>
                                 </tr>

@@ -1,3 +1,4 @@
+// src/renderer/src/components/Modals/EditMaterialModal.jsx
 import React, { useState, useEffect, useRef } from 'react';
 import styles from './Modals.module.css';
 import { MdClose, MdErrorOutline, MdCloudUpload, MdQrCode2 } from 'react-icons/md';
@@ -14,12 +15,13 @@ export const EditMaterialModal = ({
   const [isSerialsModalOpen, setIsSerialsModalOpen] = useState(false);
   const [formData, setFormData] = useState({
     code: '',
-    desc: '',
+    nombre: '',
+    descripcion: '',
     marca: '',
     modelo: '',
     departamento: 'AIT',
     cat: 'Tubería',
-    loc: 'Almacén A',
+    loc: '',
     unit: 'UND',
     min: 5,
     foto: null
@@ -34,12 +36,13 @@ export const EditMaterialModal = ({
       setError('');
       setFormData({
         code: material.code || '',
-        desc: material.desc || '',
+        nombre: material.nombre || '',
+        descripcion: material.descripcion || '',
         marca: material.marca || '',
         modelo: material.modelo || '',
         departamento: material.departamento || 'AIT',
         cat: material.cat || 'Tubería',
-        loc: material.loc || 'Almacén A',
+        loc: material.loc || '',
         unit: material.unit || 'UND',
         min: material.min || 5,
         foto: material.foto || null
@@ -88,8 +91,8 @@ export const EditMaterialModal = ({
   };
 
   const handleSubmit = async () => {
-    if (!formData.desc.trim()) {
-      setError('La descripción del material es obligatoria.');
+    if (!formData.nombre.trim()) {
+      setError('El nombre del material es obligatorio.');
       return;
     }
 
@@ -126,7 +129,6 @@ export const EditMaterialModal = ({
 
           <div className={styles.body} style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '20px' }}>
             
-            {/* Columna Izquierda: Datos del Material */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
               
               <div style={{ display: 'flex', gap: '10px' }}>
@@ -151,17 +153,29 @@ export const EditMaterialModal = ({
                     <option value="AIT">AIT</option>
                     <option value="SCADA">SCADA</option>
                     <option value="TELECOM">TELECOM</option>
+                    <option value="MECÁNICA">MECÁNICA</option>
+                    <option value="OPERACIONES">OPERACIONES</option>
                   </select>
                 </div>
               </div>
 
               <div className={styles.formGroup}>
-                <label>Descripción del Material</label>
+                <label>Nombre del Material</label>
                 <input 
                   type="text" 
                   className={styles.input} 
-                  value={formData.desc}
-                  onChange={(e) => setFormData({ ...formData, desc: e.target.value })}
+                  value={formData.nombre}
+                  onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
+                />
+              </div>
+              
+              <div className={styles.formGroup}>
+                <label>Descripción detallada</label>
+                <textarea 
+                  className={styles.textarea} 
+                  rows="2"
+                  value={formData.descripcion}
+                  onChange={(e) => setFormData({ ...formData, descripcion: e.target.value })}
                 />
               </div>
 
@@ -187,7 +201,6 @@ export const EditMaterialModal = ({
                 </div>
               </div>
 
-              {/* Botón para abrir el modal de edición de seriales individuales */}
               <div className={styles.formGroup} style={{ marginTop: '5px' }}>
                 <label>Gestión de Unidades Físicas</label>
                 <button 
@@ -203,7 +216,6 @@ export const EditMaterialModal = ({
 
             </div>
 
-            {/* Columna Derecha: Foto, Categoría y Configuración de Stock */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
               
               <div className={styles.formGroup}>
@@ -300,16 +312,12 @@ export const EditMaterialModal = ({
               <div style={{ display: 'flex', gap: '10px' }}>
                 <div className={styles.formGroup} style={{ flex: 1 }}>
                   <label>Ubicación</label>
-                  <select 
-                    className={styles.select}
+                  <input 
+                    type="text"
+                    className={styles.input}
                     value={formData.loc}
                     onChange={(e) => setFormData({ ...formData, loc: e.target.value })}
-                  >
-                    <option value="Almacén A">Almacén A</option>
-                    <option value="Almacén B">Almacén B</option>
-                    <option value="Almacén C">Almacén C</option>
-                    <option value="Virtual">Virtual</option>
-                  </select>
+                  />
                 </div>
                 
                 <div className={styles.formGroup} style={{ flex: 1 }}>

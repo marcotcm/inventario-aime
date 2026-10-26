@@ -1,21 +1,24 @@
+// src/renderer/src/components/Modals/NewMaterialModal.jsx
 import React, { useState, useEffect, useRef } from 'react';
 import styles from './Modals.module.css';
 import { MdClose, MdErrorOutline, MdCloudUpload, MdAdd, MdBusiness } from 'react-icons/md';
 
 export const NewMaterialModal = ({ isOpen, onClose, onSave }) => {
   const [render, setRender] = useState(isOpen);
-  const [modo, setModo] = useState('ENTRADA'); // 'ENTRADA' | 'PEDIDO'
+  const [modo, setModo] = useState('ENTRADA'); 
   
   const [formData, setFormData] = useState({
     code: '',
-    desc: '',
+    nombre: '',
+    descripcion: '',
     marca: '',
     modelo: '',
     departamento: 'AIT',
     cat: 'Tubería',
-    loc: 'Almacén A',
+    loc: '',
     unit: 'UND',
     proveedor: '',
+    receptor: '',
     estadoMaterial: 'NUEVO',
     foto: null,
     qty_solicitada: 1,
@@ -68,14 +71,16 @@ export const NewMaterialModal = ({ isOpen, onClose, onSave }) => {
       setModo('ENTRADA');
       setFormData({
         code: '',
-        desc: '',
+        nombre: '',
+        descripcion: '',
         marca: '',
         modelo: '',
         departamento: 'AIT',
         cat: 'Tubería',
-        loc: 'Almacén A',
+        loc: '',
         unit: 'UND',
         proveedor: '',
+        receptor: '',
         estadoMaterial: 'NUEVO',
         foto: null,
         qty_solicitada: 1,
@@ -212,8 +217,8 @@ export const NewMaterialModal = ({ isOpen, onClose, onSave }) => {
   );
 
   const handleSubmit = async () => {
-    if (!formData.code.trim() || !formData.desc.trim()) {
-      setError('El Código y la Descripción del material son obligatorios.');
+    if (!formData.code.trim() || !formData.nombre.trim()) {
+      setError('El Código y el Nombre del material son obligatorios.');
       return;
     }
     
@@ -258,7 +263,8 @@ export const NewMaterialModal = ({ isOpen, onClose, onSave }) => {
       
       const materialDef = {
         code: formData.code,
-        desc: formData.desc,
+        nombre: formData.nombre,
+        descripcion: formData.descripcion,
         marca: formData.marca,
         modelo: formData.modelo,
         departamento: formData.departamento,
@@ -274,6 +280,7 @@ export const NewMaterialModal = ({ isOpen, onClose, onSave }) => {
         ordenNumero: 'INICIAL-' + Date.now().toString().slice(-6),
         factura: 'N/A',
         notas: 'Registro inicial de stock y catálogo de nuevo material.',
+        receptor: formData.receptor,
         items: [
           {
             code: formData.code,
@@ -346,13 +353,24 @@ export const NewMaterialModal = ({ isOpen, onClose, onSave }) => {
             </div>
 
             <div className={styles.formGroup}>
-              <label>Descripción del Material</label>
+              <label>Nombre del Material</label>
               <input 
                 type="text" 
                 className={styles.input} 
-                placeholder='Ej. Válvula Esférica 2" ANSI 300' 
-                value={formData.desc}
-                onChange={(e) => setFormData({ ...formData, desc: e.target.value })}
+                placeholder='Ej. Válvula Esférica' 
+                value={formData.nombre}
+                onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
+              />
+            </div>
+            
+            <div className={styles.formGroup}>
+              <label>Descripción detallada</label>
+              <textarea 
+                className={styles.textarea} 
+                rows="2"
+                placeholder='Ej. Válvula de Acero Inoxidable Clase 300...' 
+                value={formData.descripcion}
+                onChange={(e) => setFormData({ ...formData, descripcion: e.target.value })}
               />
             </div>
 
@@ -546,21 +564,20 @@ export const NewMaterialModal = ({ isOpen, onClose, onSave }) => {
                   <option value="Tarjetas">Tarjetas</option>
                   <option value="Bombas">Bombas</option>
                   <option value="Motores">Motores</option>
+                  <option value="Equipos Red">Equipos Red</option>
+                  <option value="Servidores">Servidores</option>
                 </select>
               </div>
               
               <div className={styles.formGroup} style={{ flex: 1 }}>
                 <label>Ubicación</label>
-                <select 
-                  className={styles.select}
+                <input 
+                  type="text"
+                  className={styles.input}
+                  placeholder="Ej. Almacén A, Patio..."
                   value={formData.loc}
                   onChange={(e) => setFormData({ ...formData, loc: e.target.value })}
-                >
-                  <option value="Almacén A">Almacén A</option>
-                  <option value="Almacén B">Almacén B</option>
-                  <option value="Almacén C">Almacén C</option>
-                  <option value="Patio">Patio</option>
-                </select>
+                />
               </div>
             </div>
 
@@ -587,6 +604,17 @@ export const NewMaterialModal = ({ isOpen, onClose, onSave }) => {
                   onChange={(e) => handleQtyRecibidaChange(e.target.value)}
                 />
               </div>
+            </div>
+
+            <div className={styles.formGroup}>
+              <label>Receptor (Quién recibe)</label>
+              <input 
+                type="text" 
+                className={styles.input} 
+                placeholder="Ej. Almacenista José" 
+                value={formData.receptor} 
+                onChange={(e) => setFormData({ ...formData, receptor: e.target.value })} 
+              />
             </div>
 
             <div style={{ display: 'flex', gap: '10px' }}>

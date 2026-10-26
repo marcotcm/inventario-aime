@@ -1,3 +1,4 @@
+// src/renderer/src/components/Modals/FilterModal.jsx
 import React, { useState, useEffect } from 'react';
 import styles from './Modals.module.css';
 import { MdClose } from 'react-icons/md';
@@ -5,7 +6,7 @@ import { MdClose } from 'react-icons/md';
 export const FilterModal = ({ isOpen, onClose, currentFilters, onApply }) => {
   const [render, setRender] = useState(isOpen);
   const [cat, setCat] = useState('Todas');
-  const [loc, setLoc] = useState('Todos los Almacenes');
+  const [loc, setLoc] = useState('');
   const [status, setStatus] = useState('Todos');
   const [marca, setMarca] = useState('');
 
@@ -14,7 +15,7 @@ export const FilterModal = ({ isOpen, onClose, currentFilters, onApply }) => {
       setRender(true);
       if (currentFilters) {
         setCat(currentFilters.cat || 'Todas');
-        setLoc(currentFilters.loc || 'Todos los Almacenes');
+        setLoc(currentFilters.loc || '');
         setStatus(currentFilters.status || 'Todos');
         setMarca(currentFilters.marca || '');
       }
@@ -28,7 +29,7 @@ export const FilterModal = ({ isOpen, onClose, currentFilters, onApply }) => {
   if (!render) return null;
 
   const handleClear = () => {
-    const clean = { cat: 'Todas', loc: 'Todos los Almacenes', status: 'Todos', marca: '' };
+    const clean = { cat: 'Todas', loc: '', status: 'Todos', marca: '' };
     setCat(clean.cat);
     setLoc(clean.loc);
     setStatus(clean.status);
@@ -84,12 +85,13 @@ export const FilterModal = ({ isOpen, onClose, currentFilters, onApply }) => {
 
           <div className={styles.formGroup}>
             <label>Ubicación Física</label>
-            <select className={styles.select} value={loc} onChange={(e) => setLoc(e.target.value)}>
-              <option value="Todos los Almacenes">Todos los Almacenes</option>
-              <option value="Almacén A">Almacén A</option>
-              <option value="Almacén B">Almacén B</option>
-              <option value="Almacén C">Almacén C</option>
-            </select>
+            <input 
+              type="text" 
+              className={styles.input} 
+              placeholder="Buscar por almacén o patio..." 
+              value={loc} 
+              onChange={(e) => setLoc(e.target.value)} 
+            />
           </div>
 
           <div className={styles.formGroup}>

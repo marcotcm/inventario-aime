@@ -1,3 +1,4 @@
+// src/main/crud/producto.crud.js
 import { getDb } from '../database/connection';
 import { ProductoModel } from '../models/producto.model';
 
@@ -9,7 +10,10 @@ export const productoCrud = {
       SELECT m.*, 
         (SELECT MAX(fecha_hora) FROM movimientos mov 
          JOIN movimiento_detalles det ON mov.id = det.movimiento_id 
-         WHERE det.code = m.code) as last_mov_date
+         WHERE det.code = m.code) as last_mov_date,
+        (SELECT COALESCE(SUM(det.qty), 0) FROM movimientos mov
+         JOIN movimiento_detalles det ON mov.id = det.movimiento_id
+         WHERE det.code = m.code AND mov.tipo = 'ENTRADA') as existencia_historica
       FROM materiales m
       ORDER BY COALESCE(last_mov_date, m.created_at) DESC
     `;
@@ -28,7 +32,14 @@ export const productoCrud = {
 
   obtenerPorCodigo: (code) => {
     const db = getDb();
-    const mat = db.prepare('SELECT * FROM materiales WHERE code = ?').get(code.toUpperCase());
+    const query = `
+      SELECT m.*, 
+        (SELECT COALESCE(SUM(det.qty), 0) FROM movimientos mov
+         JOIN movimiento_detalles det ON mov.id = det.movimiento_id
+         WHERE det.code = m.code AND mov.tipo = 'ENTRADA') as existencia_historica
+      FROM materiales m WHERE code = ?
+    `;
+    const mat = db.prepare(query).get(code.toUpperCase());
     if (!mat) return null;
 
     const serialRows = db.prepare('SELECT serial, proveedor_nombre, estado_material FROM material_stock WHERE code = ? AND estado = ?').all(mat.code, 'DISPONIBLE');
@@ -63,7 +74,7 @@ export const productoCrud = {
       modelo: nuevoProducto.modelo || 'N/A',
       departamento: nuevoProducto.departamento || 'AIT',
       cat: nuevoProducto.cat || 'General',
-      loc: nuevoProducto.loc || 'Almacén A',
+      loc: (nuevoProducto.loc || '').trim(),
       unit: nuevoProducto.unit || 'UND',
       min: nuevoProducto.min || 10,
       foto: nuevoProducto.foto || null
@@ -93,7 +104,7 @@ export const productoCrud = {
       modelo: datos.modelo || 'N/A',
       departamento: datos.departamento || 'AIT',
       cat: datos.cat || 'General',
-      loc: datos.loc || 'Almacén A',
+      loc: (datos.loc || '').trim(),
       unit: datos.unit || 'UND',
       min: datos.min || 10,
       foto: datos.foto || null
